@@ -1,4 +1,6 @@
+import { fontSizeConfigAtom } from '@/store'
 import { isKanji } from '@/utils/kana'
+import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
 
 type NotationProps = {
@@ -12,9 +14,10 @@ type NotationInfo = {
 
 export default function Notation({ notation }: NotationProps) {
   const infos: NotationInfo[] = useMemo(() => getNotationInfo(notation), [notation])
+  const fontSizeConfig = useAtomValue(fontSizeConfigAtom)
   return (
     <div className="mx-auto flex h-20 items-end">
-      <ruby className="mb-1 p-0 font-mono text-5xl text-gray-800 dark:text-opacity-80">
+      <ruby className="mb-1 p-0 text-5xl text-gray-800 dark:text-opacity-80" style={{ fontFamily: fontSizeConfig.foreignFontFamily }}>
         {infos.map(({ word, phonetic }) => {
           const hasPhonetic = phonetic && phonetic.length > 0
           const isEmptyPhonetic = hasPhonetic && phonetic.trim().length == 0
