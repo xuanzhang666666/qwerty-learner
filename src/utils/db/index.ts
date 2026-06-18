@@ -121,6 +121,22 @@ export function useSaveWordRecord() {
   return saveWordRecord
 }
 
+export function useAddWordToErrorBook() {
+  const isRevision = useAtomValue(isReviewModeAtom)
+  const currentChapter = useAtomValue(currentChapterAtom)
+  const dictID = useAtomValue(currentDictIdAtom)
+
+  const addWordToErrorBook = useCallback(
+    async (word: string) => {
+      const wordRecord = new WordRecord(word, dictID, isRevision ? -1 : currentChapter, [], 1, {})
+      return db.wordRecords.add(wordRecord)
+    },
+    [currentChapter, dictID, isRevision],
+  )
+
+  return addWordToErrorBook
+}
+
 export function useDeleteWordRecord() {
   const deleteWordRecord = useCallback(async (word: string, dict: string) => {
     try {
@@ -132,4 +148,21 @@ export function useDeleteWordRecord() {
   }, [])
 
   return { deleteWordRecord }
+}
+
+export type ErrorBookWordIdentity = {
+  word: string
+  dict: string
+}
+
+export function useDeleteErrorBookWords() {
+  const deleteErrorBookWords = useCallback(async (words: ErrorBookWordIdentity[]) => {
+    const uniqueWords = Array.from(new Map(words.map((word) => [`${word.dict}-${word.word}`, word])).values())
+
+    await Promise.all(uniqueWords.map(({ word, dict }) => db.wordRecords.where({ word, dict }).delete()))
+
+    return uniqueWords.length
+  }, [])
+
+  return { deleteErrorBookWords }
 }

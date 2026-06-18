@@ -6,8 +6,10 @@ import RemarkRing from './RemarkRing'
 import WordChip from './WordChip'
 import styles from './index.module.css'
 import Tooltip from '@/components/Tooltip'
+import { ERROR_BOOK_REVIEW_DICT_ID } from '@/resources/dictionary'
 import {
   currentChapterAtom,
+  currentDictIdAtom,
   currentDictInfoAtom,
   infoPanelStateAtom,
   isReviewModeAtom,
@@ -15,11 +17,12 @@ import {
   reviewModeInfoAtom,
   wordDictationConfigAtom,
 } from '@/store'
-import type { InfoPanelType } from '@/typings'
+import type { InfoPanelType, Word } from '@/typings'
 import { recordOpenInfoPanelAction } from '@/utils'
+import { useDeleteErrorBookWords } from '@/utils/db'
 import { Transition } from '@headlessui/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { useCallback, useContext, useEffect, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useNavigate } from 'react-router-dom'
 import IexportWords from '~icons/icon-park-outline/excel'
@@ -36,12 +39,17 @@ const ResultScreen = () => {
   const setWordDictationConfig = useSetAtom(wordDictationConfigAtom)
   const currentDictInfo = useAtomValue(currentDictInfoAtom)
   const [currentChapter, setCurrentChapter] = useAtom(currentChapterAtom)
+  const setCurrentDictId = useSetAtom(currentDictIdAtom)
   const setInfoPanelState = useSetAtom(infoPanelStateAtom)
   const randomConfig = useAtomValue(randomConfigAtom)
   const navigate = useNavigate()
 
   const setReviewModeInfo = useSetAtom(reviewModeInfoAtom)
   const isReviewMode = useAtomValue(isReviewModeAtom)
+  const { deleteErrorBookWords } = useDeleteErrorBookWords()
+  const [removedErrorBookWordCount, setRemovedErrorBookWordCount] = useState(0)
+  const hasRemovedMasteredWordsRef = useRef(false)
+  const isErrorBookReview = currentDictInfo.id === ERROR_BOOK_REVIEW_DICT_ID
 
   useEffect(() => {
     // tick a zero timer to calc the stats
@@ -82,6 +90,28 @@ const ResultScreen = () => {
       .map((log) => state.chapterData.words[log.index])
       .filter((word) => word !== undefined)
   }, [state.chapterData.userInputLogs, state.chapterData.words])
+
+  const masteredErrorBookWords = useMemo(() => {
+    if (!isErrorBookReview) return []
+
+    return state.chapterData.userInputLogs
+      .filter((log) => log.correctCount > 0 && log.wrongCount === 0)
+      .map((log) => state.chapterData.words[log.index])
+      .filter((word): word is Word & { sourceDict: string } => Boolean(word?.sourceDict))
+      .map((word) => ({ word: word.name, dict: word.sourceDict }))
+  }, [isErrorBookReview, state.chapterData.userInputLogs, state.chapterData.words])
+
+  useEffect(() => {
+    if (!state.isFinished || !isReviewMode || !isErrorBookReview || hasRemovedMasteredWordsRef.current) return
+
+    hasRemovedMasteredWordsRef.current = true
+
+    deleteErrorBookWords(masteredErrorBookWords)
+      .then(setRemovedErrorBookWordCount)
+      .catch((error) => {
+        console.error('移除已掌握错词失败', error)
+      })
+  }, [deleteErrorBookWords, isErrorBookReview, isReviewMode, masteredErrorBookWords, state.isFinished])
 
   const isLastChapter = useMemo(() => {
     return currentChapter >= currentDictInfo.chapterCount - 1
@@ -159,17 +189,23 @@ const ResultScreen = () => {
   const exitButtonHandler = useCallback(() => {
     if (isReviewMode) {
       setCurrentChapter(0)
+      if (isErrorBookReview) {
+        setCurrentDictId('cet4')
+      }
       setReviewModeInfo((old) => ({ ...old, isReviewMode: false }))
     } else {
       dispatch({ type: TypingStateActionType.REPEAT_CHAPTER, shouldShuffle: false })
     }
-  }, [dispatch, isReviewMode, setCurrentChapter, setReviewModeInfo])
+  }, [dispatch, isErrorBookReview, isReviewMode, setCurrentChapter, setCurrentDictId, setReviewModeInfo])
 
   const onNavigateToGallery = useCallback(() => {
     setCurrentChapter(0)
+    if (isErrorBookReview) {
+      setCurrentDictId('cet4')
+    }
     setReviewModeInfo((old) => ({ ...old, isReviewMode: false }))
     navigate('/gallery')
-  }, [navigate, setCurrentChapter, setReviewModeInfo])
+  }, [isErrorBookReview, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo])
 
   useHotkeys(
     'enter',
@@ -222,6 +258,13 @@ const ResultScreen = () => {
             <div className="text-center font-sans text-xl font-normal text-gray-900 dark:text-gray-400 md:text-2xl">
               {`${currentDictInfo.name} ${isReviewMode ? '错题复习' : '第' + (currentChapter + 1) + '章'}`}
             </div>
+            {isErrorBookReview && (
+              <div className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                {removedErrorBookWordCount > 0
+                  ? `已从错题本移除 ${removedErrorBookWordCount} 个本次答对单词`
+                  : '本次没有移除错词，继续加油'}
+              </div>
+            )}
             <button className="absolute right-7 top-5" onClick={exitButtonHandler}>
               <IconX className="text-gray-400" />
             </button>

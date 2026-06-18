@@ -12,8 +12,10 @@ import { WordPronunciationIcon } from '@/components/WordPronunciationIcon'
 import { EXPLICIT_SPACE } from '@/constants'
 import useKeySounds from '@/hooks/useKeySounds'
 import { TypingContext, TypingStateActionType } from '@/pages/Typing/store'
+import { ERROR_BOOK_REVIEW_DICT_ID } from '@/resources/dictionary'
 import {
   currentChapterAtom,
+  currentDictIdAtom,
   currentDictInfoAtom,
   isIgnoreCaseAtom,
   isShowAnswerOnHoverAtom,
@@ -23,11 +25,12 @@ import {
 } from '@/store'
 import type { Word } from '@/typings'
 import { CTRL, getUtcStringForMixpanel } from '@/utils'
-import { useSaveWordRecord } from '@/utils/db'
+import { useAddWordToErrorBook, useSaveWordRecord } from '@/utils/db'
 import { useAtomValue } from 'jotai'
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useImmer } from 'use-immer'
+import IconBookmarkPlus from '~icons/tabler/bookmark-plus'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
@@ -47,10 +50,17 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   const [isHoveringWord, setIsHoveringWord] = useState(false)
   const currentLanguage = useAtomValue(currentDictInfoAtom).language
   const currentLanguageCategory = useAtomValue(currentDictInfoAtom).languageCategory
+  const currentDictId = useAtomValue(currentDictIdAtom)
   const currentChapter = useAtomValue(currentChapterAtom)
+  const addWordToErrorBook = useAddWordToErrorBook()
 
   const [showTipAlert, setShowTipAlert] = useState(false)
+  const [isAddedToErrorBook, setIsAddedToErrorBook] = useState(false)
   const wordPronunciationIconRef = useRef<WordPronunciationIconRef>(null)
+
+  useEffect(() => {
+    setIsAddedToErrorBook(false)
+  }, [word.name])
 
   useEffect(() => {
     // run only when word changes
@@ -280,6 +290,17 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     }
   }, [wordState.wrongCount, dispatch])
 
+  const handleAddToErrorBook = useCallback(async () => {
+    if (isAddedToErrorBook) return
+
+    try {
+      await addWordToErrorBook(word.name)
+      setIsAddedToErrorBook(true)
+    } catch (error) {
+      console.error('加入错题本失败', error)
+    }
+  }, [addWordToErrorBook, isAddedToErrorBook, word.name])
+
   return (
     <>
       <InputHandler updateInput={updateInput} />
@@ -307,6 +328,24 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
             <div className="absolute -right-12 top-1/2 h-9 w-9 -translate-y-1/2 transform ">
               <Tooltip content={`快捷键${CTRL} + J`}>
                 <WordPronunciationIcon word={word} lang={currentLanguage} ref={wordPronunciationIconRef} className="h-full w-full" />
+              </Tooltip>
+            </div>
+          )}
+          {currentDictId !== ERROR_BOOK_REVIEW_DICT_ID && (
+            <div className="absolute left-full top-1/2 ml-16 -translate-y-1/2">
+              <Tooltip content={isAddedToErrorBook ? '已加入错题本' : '加入错题本'}>
+                <button
+                  aria-label={isAddedToErrorBook ? '已加入错题本' : '加入错题本'}
+                  className={`flex h-9 w-9 items-center justify-center rounded-md border border-indigo-200 text-indigo-500 shadow-sm transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 ${
+                    isAddedToErrorBook ? 'bg-indigo-50 dark:bg-gray-700' : 'bg-white dark:bg-gray-800'
+                  }`}
+                  disabled={isAddedToErrorBook}
+                  onClick={handleAddToErrorBook}
+                  title={isAddedToErrorBook ? '已加入错题本' : '加入错题本'}
+                  type="button"
+                >
+                  <IconBookmarkPlus className="h-5 w-5" />
+                </button>
               </Tooltip>
             </div>
           )}

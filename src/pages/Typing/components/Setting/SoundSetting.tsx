@@ -63,6 +63,15 @@ export default function SoundSetting() {
     },
     [setPronunciationConfig],
   )
+  const onChangePronunciationRepeatTimes = useCallback(
+    (value: [number]) => {
+      setPronunciationConfig((prev) => ({
+        ...prev,
+        repeatTimes: value[0],
+      }))
+    },
+    [setPronunciationConfig],
+  )
 
   const onToggleKeySounds = useCallback(
     (checked: boolean) => {
@@ -172,6 +181,28 @@ export default function SoundSetting() {
                 </Slider.Root>
                 <span className="ml-4 w-10 text-xs font-normal text-gray-600">{`${toFixedNumber(pronunciationConfig.rate, 2)}`}</span>
               </div>
+            </div>
+
+            <div className={styles.block}>
+              <span className={styles.blockLabel}>重复次数</span>
+              <div className="flex h-5 w-full items-center justify-between">
+                <Slider.Root
+                  defaultValue={[pronunciationConfig.repeatTimes ?? 1]}
+                  max={5}
+                  min={1}
+                  step={1}
+                  className="slider"
+                  onValueChange={onChangePronunciationRepeatTimes}
+                  disabled={!pronunciationConfig.isOpen || pronunciationConfig.isLoop}
+                >
+                  <Slider.Track>
+                    <Slider.Range />
+                  </Slider.Track>
+                  <Slider.Thumb />
+                </Slider.Root>
+                <span className="ml-4 w-10 text-xs font-normal text-gray-600">{`${pronunciationConfig.repeatTimes ?? 1} 次`}</span>
+              </div>
+              {pronunciationConfig.isLoop && <span className="text-xs text-gray-400">循环发音开启时，重复次数不会生效</span>}
             </div>
           </div>
           {window.speechSynthesis && (

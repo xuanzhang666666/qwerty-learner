@@ -4194,7 +4194,25 @@ export const dictionaries: Dictionary[] = dictionaryResources.map((resource) => 
   chapterCount: calcChapterCount(resource.length),
 }))
 
+export const ERROR_BOOK_REVIEW_DICT_ID = 'error-book-review'
+
+const errorBookReviewDictionary: Dictionary = {
+  id: ERROR_BOOK_REVIEW_DICT_ID,
+  name: '错题本',
+  description: '全部错题复习',
+  category: '错题复习',
+  tags: ['错题'],
+  url: '',
+  length: 0,
+  language: 'en',
+  languageCategory: 'en',
+  chapterCount: 0,
+}
+
 /**
  * An object-map from dictionary IDs to dictionary themselves.
  */
-export const idDictionaryMap: Record<string, Dictionary> = Object.fromEntries(dictionaries.map((dict) => [dict.id, dict]))
+export const idDictionaryMap: Record<string, Dictionary> = {
+  ...Object.fromEntries(dictionaries.map((dict) => [dict.id, dict])),
+  [ERROR_BOOK_REVIEW_DICT_ID]: errorBookReviewDictionary,
+}

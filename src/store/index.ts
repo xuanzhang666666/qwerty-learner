@@ -58,6 +58,7 @@ export const pronunciationConfigAtom = atomForConfig('pronunciation', {
   isTransRead: false,
   transVolume: 1,
   rate: 1,
+  repeatTimes: 1,
 })
 
 export const fontSizeConfigAtom = atomForConfig('fontsize', defaultFontSizeConfig)

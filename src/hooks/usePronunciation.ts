@@ -5,7 +5,7 @@ import { romajiToHiragana } from '@/utils/kana'
 import noop from '@/utils/noop'
 import type { Howl } from 'howler'
 import { useAtomValue } from 'jotai'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSound from 'use-sound'
 import type { HookOptions } from 'use-sound/dist/types'
 
@@ -37,9 +37,14 @@ export function generateWordSoundSrc(word: string, pronunciation: Exclude<Pronun
 export default function usePronunciationSound(word: string, isLoop?: boolean) {
   const pronunciationConfig = useAtomValue(pronunciationConfigAtom)
   const loop = useMemo(() => (typeof isLoop === 'boolean' ? isLoop : pronunciationConfig.isLoop), [isLoop, pronunciationConfig.isLoop])
+  const repeatTimes = useMemo(() => Math.max(1, Math.floor(pronunciationConfig.repeatTimes ?? 1)), [pronunciationConfig.repeatTimes])
   const [isPlaying, setIsPlaying] = useState(false)
+  const playedTimesRef = useRef(0)
+  const shouldRepeatRef = useRef(false)
+  const repeatTimesRef = useRef(repeatTimes)
+  const loopRef = useRef(loop)
 
-  const [play, { stop, sound }] = useSound(generateWordSoundSrc(word, pronunciationConfig.type), {
+  const [basePlay, { stop: baseStop, sound }] = useSound(generateWordSoundSrc(word, pronunciationConfig.type), {
     html5: true,
     format: ['mp3'],
     loop,
@@ -54,11 +59,43 @@ export default function usePronunciationSound(word: string, isLoop?: boolean) {
   }, [loop, sound])
 
   useEffect(() => {
+    repeatTimesRef.current = repeatTimes
+  }, [repeatTimes])
+
+  useEffect(() => {
+    loopRef.current = loop
+  }, [loop])
+
+  const stop = useCallback(() => {
+    shouldRepeatRef.current = false
+    playedTimesRef.current = 0
+    baseStop()
+  }, [baseStop])
+
+  const play = useCallback(() => {
+    playedTimesRef.current = 1
+    shouldRepeatRef.current = true
+    basePlay()
+  }, [basePlay])
+
+  useEffect(() => {
     if (!sound) return
     const unListens: Array<() => void> = []
 
     unListens.push(addHowlListener(sound, 'play', () => setIsPlaying(true)))
-    unListens.push(addHowlListener(sound, 'end', () => setIsPlaying(false)))
+    unListens.push(
+      addHowlListener(sound, 'end', () => {
+        if (shouldRepeatRef.current && !loopRef.current && playedTimesRef.current < repeatTimesRef.current) {
+          playedTimesRef.current += 1
+          basePlay()
+          return
+        }
+
+        shouldRepeatRef.current = false
+        playedTimesRef.current = 0
+        setIsPlaying(false)
+      }),
+    )
     unListens.push(addHowlListener(sound, 'pause', () => setIsPlaying(false)))
     unListens.push(addHowlListener(sound, 'playerror', () => setIsPlaying(false)))
 
@@ -67,7 +104,7 @@ export default function usePronunciationSound(word: string, isLoop?: boolean) {
       unListens.forEach((unListen) => unListen())
       ;(sound as Howl).unload()
     }
-  }, [sound])
+  }, [basePlay, sound])
 
   return { play, stop, isPlaying }
 }

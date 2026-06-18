@@ -6,10 +6,15 @@ import Pagination, { ITEM_PER_PAGE } from './Pagination'
 import RowDetail from './RowDetail'
 import { currentRowDetailAtom } from './store'
 import type { groupedWordRecords } from './type'
+import type { TErrorWordData } from '@/pages/Gallery-N/hooks/useErrorWords'
+import { ERROR_BOOK_REVIEW_DICT_ID, idDictionaryMap } from '@/resources/dictionary'
+import { currentChapterAtom, currentDictIdAtom, reviewModeInfoAtom } from '@/store'
 import { db, useDeleteWordRecord } from '@/utils/db'
 import type { WordRecord } from '@/utils/db/record'
+import { generateNewWordReviewRecord } from '@/utils/db/review-record'
+import { wordListFetcher } from '@/utils/wordListFetcher'
 import * as ScrollArea from '@radix-ui/react-scroll-area'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import IconX from '~icons/tabler/x'
@@ -23,6 +28,11 @@ export function ErrorBook() {
   const currentRowDetail = useAtomValue(currentRowDetailAtom)
   const { deleteWordRecord } = useDeleteWordRecord()
   const [reload, setReload] = useState(false)
+  const [isPreparingReview, setIsPreparingReview] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const setCurrentDictId = useSetAtom(currentDictIdAtom)
+  const setCurrentChapter = useSetAtom(currentChapterAtom)
+  const setReviewModeInfo = useSetAtom(reviewModeInfoAtom)
 
   const onBack = useCallback(() => {
     navigate('/')
@@ -94,6 +104,69 @@ export function ErrorBook() {
     setReload((prev) => !prev)
   }
 
+  const handleStartReview = useCallback(async () => {
+    if (sortedRecords.length === 0 || isPreparingReview) return
+
+    setIsPreparingReview(true)
+    setReviewError(null)
+
+    try {
+      const wordListCache = new Map<string, Awaited<ReturnType<typeof wordListFetcher>>>()
+      const errorData: TErrorWordData[] = []
+
+      for (const record of sortedRecords) {
+        const dictInfo = idDictionaryMap[record.dict]
+        if (!dictInfo) continue
+
+        let wordList = wordListCache.get(record.dict)
+        if (!wordList) {
+          wordList = await wordListFetcher(dictInfo.url)
+          wordListCache.set(record.dict, wordList)
+        }
+
+        const word = wordList.find((item) => item.name === record.word)
+        if (!word) continue
+
+        const errorLetters: Record<string, number> = {}
+        record.records.forEach((wordRecord) => {
+          for (const index in wordRecord.mistakes) {
+            const mistakes = wordRecord.mistakes[index]
+            if (mistakes.length > 0) {
+              errorLetters[index] = (errorLetters[index] ?? 0) + mistakes.length
+            }
+          }
+        })
+
+        errorData.push({
+          word: record.word,
+          originData: { ...word, sourceDict: record.dict },
+          errorCount: record.wrongCount,
+          errorLetters,
+          errorChar: Object.entries(errorLetters)
+            .sort((a, b) => b[1] - a[1])
+            .map(([index]) => record.word[Number(index)]),
+          latestErrorTime: record.records.reduce((acc, cur) => Math.max(acc, cur.timeStamp), 0),
+        })
+      }
+
+      if (errorData.length === 0) {
+        setReviewError('没有找到可复习的错词')
+        return
+      }
+
+      const record = await generateNewWordReviewRecord(ERROR_BOOK_REVIEW_DICT_ID, errorData, { shuffle: true })
+      setCurrentDictId(ERROR_BOOK_REVIEW_DICT_ID)
+      setCurrentChapter(-1)
+      setReviewModeInfo({ isReviewMode: true, reviewRecord: record })
+      navigate('/')
+    } catch (error) {
+      console.error(error)
+      setReviewError('生成复习列表失败，请稍后重试')
+    } finally {
+      setIsPreparingReview(false)
+    }
+  }, [isPreparingReview, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo, sortedRecords])
+
   return (
     <>
       <div className={`relative flex h-screen w-full flex-col items-center pb-4 ease-in ${currentRowDetail && 'blur-sm'}`}>
@@ -104,6 +177,17 @@ export function ErrorBook() {
 
         <div className="flex w-full flex-1 select-text items-start justify-center overflow-hidden">
           <div className="flex h-full w-5/6 flex-col pt-10">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-sm text-red-500">{reviewError}</div>
+              <button
+                className="my-btn-primary h-10 px-5 text-base font-bold disabled:cursor-not-allowed disabled:bg-gray-300"
+                disabled={sortedRecords.length === 0 || isPreparingReview}
+                onClick={handleStartReview}
+                type="button"
+              >
+                {isPreparingReview ? '正在生成...' : '复习全部错题'}
+              </button>
+            </div>
             <div className="flex w-full justify-between rounded-lg bg-white px-6 py-5 text-lg text-black shadow-lg dark:bg-gray-800 dark:text-white">
               <span className="basis-2/12">单词</span>
               <span className="basis-6/12">释义</span>

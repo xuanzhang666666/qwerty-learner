@@ -2,6 +2,7 @@ import { db } from '.'
 import { ReviewRecord } from './record'
 import type { TErrorWordData } from '@/pages/Gallery-N/hooks/useErrorWords'
 import type { Word } from '@/typings'
+import shuffle from '@/utils/shuffle'
 import { useEffect, useState } from 'react'
 
 export function useGetLatestReviewRecord(dictID: string) {
@@ -31,7 +32,7 @@ type TRankedErrorWordData = TErrorWordData & {
   latestErrorTimeScore: number
 }
 
-export async function generateNewWordReviewRecord(dictID: string, errorData: TErrorWordData[]) {
+export async function generateNewWordReviewRecord(dictID: string, errorData: TErrorWordData[], options?: { shuffle?: boolean }) {
   const errorCountRankings = [...errorData].sort((a, b) => a.errorCount - b.errorCount)
   const latestErrorTimeRankings = [...errorData].sort((a, b) => a.latestErrorTime - b.latestErrorTime)
 
@@ -57,7 +58,7 @@ export async function generateNewWordReviewRecord(dictID: string, errorData: TEr
     })
     .map((item) => item.originData)
 
-  const record = new ReviewRecord(dictID, sortedWords)
+  const record = new ReviewRecord(dictID, options?.shuffle ? shuffle(sortedWords) : sortedWords)
 
   await db.reviewRecords.put(record)
   return record
