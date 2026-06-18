@@ -31,10 +31,21 @@ const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
       onClick={onClick}
     >
       <span className="basis-2/12 break-normal">{record.word}</span>
-      <span className="basis-6/12 break-normal">
+      <span className="basis-2/12 break-normal text-sm text-gray-500 dark:text-gray-400">
+        {word ? (
+          <>
+            {word.usphone && word.usphone.length > 1 && <span>{`AmE: [${word.usphone}]`}</span>}
+            {word.ukphone && word.ukphone.length > 1 && <span className="ml-3">{`BrE: [${word.ukphone}]`}</span>}
+          </>
+        ) : (
+          <LoadingWordUI isLoading={isLoading} hasError={hasError} />
+        )}
+      </span>
+      <span className="basis-3/12 break-normal">
         {word ? word.trans.join('；') : <LoadingWordUI isLoading={isLoading} hasError={hasError} />}
       </span>
       <span className="basis-1/12 break-normal pl-8">{record.wrongCount}</span>
+      <span className="basis-1/12 break-normal pl-8">{record.correctCount}</span>
       <span className="basis-1/12 break-normal">{dictInfo?.name}</span>
       <span
         className="basis-1/12 break-normal"

@@ -12,6 +12,8 @@ export interface IWordRecord {
   timing: number[]
   // 出错的次数
   wrongCount: number
+  // 错题本复习中一次答对的累计次数
+  correctCount?: number
   // 每个字母被错误输入成什么, index 为字母的索引, 数组内为错误的 e.key
   mistakes: LetterMistakes
 }
@@ -28,15 +30,25 @@ export class WordRecord implements IWordRecord {
   chapter: number | null
   timing: number[]
   wrongCount: number
+  correctCount?: number
   mistakes: LetterMistakes
 
-  constructor(word: string, dict: string, chapter: number | null, timing: number[], wrongCount: number, mistakes: LetterMistakes) {
+  constructor(
+    word: string,
+    dict: string,
+    chapter: number | null,
+    timing: number[],
+    wrongCount: number,
+    mistakes: LetterMistakes,
+    correctCount = 0,
+  ) {
     this.word = word
     this.timeStamp = getUTCUnixTimestamp()
     this.dict = dict
     this.chapter = chapter
     this.timing = timing
     this.wrongCount = wrongCount
+    this.correctCount = correctCount
     this.mistakes = mistakes
   }
 

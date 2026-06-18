@@ -155,14 +155,34 @@ export type ErrorBookWordIdentity = {
   dict: string
 }
 
-export function useDeleteErrorBookWords() {
-  const deleteErrorBookWords = useCallback(async (words: ErrorBookWordIdentity[]) => {
-    const uniqueWords = Array.from(new Map(words.map((word) => [`${word.dict}-${word.word}`, word])).values())
+export function useRecordErrorBookCorrectAnswers() {
+  const recordErrorBookCorrectAnswers = useCallback(async (words: ErrorBookWordIdentity[]) => {
+    const wordCorrectCountMap = words.reduce((acc, word) => {
+      const key = `${word.dict}-${word.word}`
+      const existing = acc.get(key)
+      acc.set(key, { ...word, correctCount: (existing?.correctCount ?? 0) + 1 })
+      return acc
+    }, new Map<string, ErrorBookWordIdentity & { correctCount: number }>())
+    const wordsWithCorrectCount = Array.from(wordCorrectCountMap.values())
+    let removedCount = 0
 
-    await Promise.all(uniqueWords.map(({ word, dict }) => db.wordRecords.where({ word, dict }).delete()))
+    await Promise.all(
+      wordsWithCorrectCount.map(async ({ word, dict, correctCount: currentCorrectCount }) => {
+        const correctRecord = new WordRecord(word, dict, -1, [], 0, {}, currentCorrectCount)
+        await db.wordRecords.add(correctRecord)
 
-    return uniqueWords.length
+        const records = await db.wordRecords.where({ word, dict }).toArray()
+        const correctCount = records.reduce((acc, record) => acc + (record.correctCount ?? 0), 0)
+
+        if (correctCount > 20) {
+          await db.wordRecords.where({ word, dict }).delete()
+          removedCount += 1
+        }
+      }),
+    )
+
+    return { updatedCount: words.length, removedCount }
   }, [])
 
-  return { deleteErrorBookWords }
+  return { recordErrorBookCorrectAnswers }
 }

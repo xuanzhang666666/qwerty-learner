@@ -7,6 +7,7 @@ import DeleteIcon from '~icons/weui/delete-filled'
 
 export type ErrorColumn = {
   word: string
+  phonetic: string
   trans: string
   errorCount: number
   errorChar: string[]
@@ -26,8 +27,13 @@ export const errorColumns = (onDelete: (word: string) => Promise<void>): ColumnD
     },
   },
   {
+    accessorKey: 'phonetic',
+    size: 160,
+    header: '音标',
+  },
+  {
     accessorKey: 'trans',
-    size: 500,
+    size: 420,
     header: '释义',
   },
   {
@@ -86,6 +92,12 @@ export function getRowsFromErrorWordData(data: TErrorWordData[]): ErrorColumn[] 
   return data.map((item) => {
     return {
       word: item.word,
+      phonetic: [
+        item.originData.usphone && item.originData.usphone.length > 1 ? `AmE: [${item.originData.usphone}]` : '',
+        item.originData.ukphone && item.originData.ukphone.length > 1 ? `BrE: [${item.originData.ukphone}]` : '',
+      ]
+        .filter(Boolean)
+        .join('  '),
       trans: item.originData.trans.join('，') ?? '',
       errorCount: item.errorCount,
       errorChar: item.errorChar,

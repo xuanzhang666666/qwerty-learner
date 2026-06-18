@@ -37,11 +37,11 @@ const RowDetail: React.FC<RowDetailProps> = ({ currentRowDetail, allRecords }) =
         ? currentRowDetail.records.reduce((acc, cur) => acc + cur.totalTime, 0) / currentRowDetail.records.length
         : 0
     const timeStr = (time / 1000).toFixed(2)
-    const correctCount = currentRowDetail.records.length
+    const correctCount = currentRowDetail.correctCount
     const wrongCount = currentRowDetail.wrongCount
     const sumCount = correctCount + wrongCount
     return { time: timeStr, sumCount, correctCount, wrongCount }
-  }, [currentRowDetail.records, currentRowDetail.wrongCount])
+  }, [currentRowDetail.correctCount, currentRowDetail.records, currentRowDetail.wrongCount])
 
   const onClose = useCallback(() => {
     setCurrentRowDetail(null)

@@ -5,4 +5,5 @@ export type groupedWordRecords = {
   dict: string
   records: WordRecord[]
   wrongCount: number
+  correctCount: number
 }

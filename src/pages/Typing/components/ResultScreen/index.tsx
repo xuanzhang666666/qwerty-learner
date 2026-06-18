@@ -19,7 +19,7 @@ import {
 } from '@/store'
 import type { InfoPanelType, Word } from '@/typings'
 import { recordOpenInfoPanelAction } from '@/utils'
-import { useDeleteErrorBookWords } from '@/utils/db'
+import { useRecordErrorBookCorrectAnswers } from '@/utils/db'
 import { Transition } from '@headlessui/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -46,9 +46,10 @@ const ResultScreen = () => {
 
   const setReviewModeInfo = useSetAtom(reviewModeInfoAtom)
   const isReviewMode = useAtomValue(isReviewModeAtom)
-  const { deleteErrorBookWords } = useDeleteErrorBookWords()
+  const { recordErrorBookCorrectAnswers } = useRecordErrorBookCorrectAnswers()
+  const [updatedErrorBookCorrectCount, setUpdatedErrorBookCorrectCount] = useState(0)
   const [removedErrorBookWordCount, setRemovedErrorBookWordCount] = useState(0)
-  const hasRemovedMasteredWordsRef = useRef(false)
+  const hasRecordedCorrectAnswersRef = useRef(false)
   const isErrorBookReview = currentDictInfo.id === ERROR_BOOK_REVIEW_DICT_ID
 
   useEffect(() => {
@@ -91,7 +92,7 @@ const ResultScreen = () => {
       .filter((word) => word !== undefined)
   }, [state.chapterData.userInputLogs, state.chapterData.words])
 
-  const masteredErrorBookWords = useMemo(() => {
+  const correctErrorBookWords = useMemo(() => {
     if (!isErrorBookReview) return []
 
     return state.chapterData.userInputLogs
@@ -102,16 +103,19 @@ const ResultScreen = () => {
   }, [isErrorBookReview, state.chapterData.userInputLogs, state.chapterData.words])
 
   useEffect(() => {
-    if (!state.isFinished || !isReviewMode || !isErrorBookReview || hasRemovedMasteredWordsRef.current) return
+    if (!state.isFinished || !isReviewMode || !isErrorBookReview || hasRecordedCorrectAnswersRef.current) return
 
-    hasRemovedMasteredWordsRef.current = true
+    hasRecordedCorrectAnswersRef.current = true
 
-    deleteErrorBookWords(masteredErrorBookWords)
-      .then(setRemovedErrorBookWordCount)
-      .catch((error) => {
-        console.error('移除已掌握错词失败', error)
+    recordErrorBookCorrectAnswers(correctErrorBookWords)
+      .then(({ updatedCount, removedCount }) => {
+        setUpdatedErrorBookCorrectCount(updatedCount)
+        setRemovedErrorBookWordCount(removedCount)
       })
-  }, [deleteErrorBookWords, isErrorBookReview, isReviewMode, masteredErrorBookWords, state.isFinished])
+      .catch((error) => {
+        console.error('记录错题本正确次数失败', error)
+      })
+  }, [correctErrorBookWords, isErrorBookReview, isReviewMode, recordErrorBookCorrectAnswers, state.isFinished])
 
   const isLastChapter = useMemo(() => {
     return currentChapter >= currentDictInfo.chapterCount - 1
@@ -260,9 +264,8 @@ const ResultScreen = () => {
             </div>
             {isErrorBookReview && (
               <div className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                {removedErrorBookWordCount > 0
-                  ? `已从错题本移除 ${removedErrorBookWordCount} 个本次答对单词`
-                  : '本次没有移除错词，继续加油'}
+                {`本次答对 ${updatedErrorBookCorrectCount} 个错词，正确次数已累计 +1`}
+                {removedErrorBookWordCount > 0 ? `，已移除 ${removedErrorBookWordCount} 个正确次数超过 20 的错词` : ''}
               </div>
             )}
             <button className="absolute right-7 top-5" onClick={exitButtonHandler}>

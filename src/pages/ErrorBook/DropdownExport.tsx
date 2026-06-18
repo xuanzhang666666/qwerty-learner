@@ -51,7 +51,7 @@ const DropdownExport: FC<DropdownProps> = ({ renderRecords }) => {
       const dictDataResults = await Promise.all(dictDataPromises)
       const dictDataMap = new Map(dictDataResults.map((result) => [result.url, result.data]))
 
-      const ExportData: Array<{ 单词: string; 释义: string; 错误次数: number; 词典: string }> = []
+      const ExportData: Array<{ 单词: string; 释义: string; 错误次数: number; 正确次数: number; 词典: string }> = []
 
       renderRecords.forEach((item: any) => {
         const dictInfo = idDictionaryMap[item.dict]
@@ -67,6 +67,7 @@ const DropdownExport: FC<DropdownProps> = ({ renderRecords }) => {
           单词: item.word,
           释义: translation,
           错误次数: item.wrongCount,
+          正确次数: item.correctCount,
           词典: dictInfo?.name || item.dict,
         })
       })

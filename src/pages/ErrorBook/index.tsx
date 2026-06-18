@@ -72,31 +72,33 @@ export function ErrorBook() {
   }, [currentPage, sortedRecords])
 
   useEffect(() => {
-    db.wordRecords
-      .where('wrongCount')
-      .above(0)
-      .toArray()
-      .then((records) => {
-        const groups: groupedWordRecords[] = []
+    db.wordRecords.toArray().then((records) => {
+      const groups: groupedWordRecords[] = []
 
-        records.forEach((record) => {
+      records
+        .filter((record) => record.dict !== ERROR_BOOK_REVIEW_DICT_ID)
+        .forEach((record) => {
           let group = groups.find((g) => g.word === record.word && g.dict === record.dict)
           if (!group) {
-            group = { word: record.word, dict: record.dict, records: [], wrongCount: 0 }
+            group = { word: record.word, dict: record.dict, records: [], wrongCount: 0, correctCount: 0 }
             groups.push(group)
           }
           group.records.push(record as WordRecord)
         })
 
-        groups.forEach((group) => {
-          group.wrongCount = group.records.reduce((acc, cur) => {
-            acc += cur.wrongCount
-            return acc
-          }, 0)
-        })
-
-        setGroupedRecords(groups)
+      groups.forEach((group) => {
+        group.wrongCount = group.records.reduce((acc, cur) => {
+          acc += cur.wrongCount
+          return acc
+        }, 0)
+        group.correctCount = group.records.reduce((acc, cur) => {
+          acc += cur.correctCount ?? 0
+          return acc
+        }, 0)
       })
+
+      setGroupedRecords(groups.filter((group) => group.wrongCount > 0))
+    })
   }, [reload])
 
   const handleDelete = async (word: string, dict: string) => {
@@ -190,8 +192,10 @@ export function ErrorBook() {
             </div>
             <div className="flex w-full justify-between rounded-lg bg-white px-6 py-5 text-lg text-black shadow-lg dark:bg-gray-800 dark:text-white">
               <span className="basis-2/12">单词</span>
-              <span className="basis-6/12">释义</span>
+              <span className="basis-2/12">音标</span>
+              <span className="basis-3/12">释义</span>
               <HeadWrongNumber className="basis-1/12" sortType={sortType} setSortType={setSort} />
+              <span className="basis-1/12">正确次数</span>
               <span className="basis-1/12">词典</span>
               <DropdownExport renderRecords={sortedRecords} />
             </div>
