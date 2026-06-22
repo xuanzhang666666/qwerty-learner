@@ -1,4 +1,5 @@
 import { CHAPTER_LENGTH } from '@/constants'
+import { GRAMMAR_SENTENCE_DICT_ID, useGrammarSentenceWords } from '@/features/grammar-sentence'
 import { currentChapterAtom, currentDictInfoAtom, reviewModeInfoAtom } from '@/store'
 import type { Word, WordWithIndex } from '@/typings/index'
 import { wordListFetcher } from '@/utils/wordListFetcher'
@@ -19,19 +20,23 @@ export function useWordList(): UseWordListResult {
   const currentDictInfo = useAtomValue(currentDictInfoAtom)
   const [currentChapter, setCurrentChapter] = useAtom(currentChapterAtom)
   const { isReviewMode, reviewRecord } = useAtomValue(reviewModeInfoAtom)
+  const grammarSentenceWordList = useGrammarSentenceWords()
+  const isGrammarSentenceDict = currentDictInfo.id === GRAMMAR_SENTENCE_DICT_ID
 
   // Reset current chapter to 0, when currentChapter is greater than chapterCount.
-  if (currentChapter >= currentDictInfo.chapterCount) {
+  if (!isGrammarSentenceDict && currentChapter >= currentDictInfo.chapterCount) {
     setCurrentChapter(0)
   }
 
   const isFirstChapter = !isReviewMode && currentDictInfo.id === 'cet4' && currentChapter === 0
-  const { data: wordList, error, isLoading } = useSWR(currentDictInfo.url, wordListFetcher)
+  const { data: wordList, error, isLoading } = useSWR(isGrammarSentenceDict ? null : currentDictInfo.url, wordListFetcher)
 
   const words: WordWithIndex[] = useMemo(() => {
     let newWords: Word[]
     if (isFirstChapter) {
       newWords = firstChapter
+    } else if (isGrammarSentenceDict) {
+      newWords = grammarSentenceWordList.words
     } else if (isReviewMode) {
       newWords = reviewRecord?.words ?? []
     } else if (wordList) {
@@ -56,9 +61,11 @@ export function useWordList(): UseWordListResult {
         trans,
       }
     })
-  }, [isFirstChapter, isReviewMode, wordList, reviewRecord?.words, currentChapter])
+  }, [grammarSentenceWordList.words, isFirstChapter, isGrammarSentenceDict, isReviewMode, wordList, reviewRecord?.words, currentChapter])
 
-  return { words, isLoading, error }
+  return isGrammarSentenceDict
+    ? { words, isLoading: grammarSentenceWordList.isLoading, error: grammarSentenceWordList.error }
+    : { words, isLoading, error }
 }
 
 const firstChapter = [

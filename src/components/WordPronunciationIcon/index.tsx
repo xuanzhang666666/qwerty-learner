@@ -1,4 +1,5 @@
 import { SoundIcon } from './SoundIcon'
+import { useSentenceSpeechSound } from '@/features/grammar-sentence/hooks/useSentenceSpeechSound'
 import usePronunciationSound from '@/hooks/usePronunciation'
 import type { Word } from '@/typings'
 import { useCallback, useEffect, useImperativeHandle } from 'react'
@@ -6,8 +7,8 @@ import React from 'react'
 
 export const WordPronunciationIcon = React.forwardRef<
   WordPronunciationIconRef,
-  { word: Word; lang: string; className?: string; iconClassName?: string }
->(({ word, lang, className, iconClassName }, ref) => {
+  { word: Word; lang: string; className?: string; iconClassName?: string; useSpeechSynthesis?: boolean }
+>(({ word, lang, className, iconClassName, useSpeechSynthesis = false }, ref) => {
   const currentWord = () => {
     if (lang === 'hapin') {
       if (/[\u0400-\u04FF]/.test(word.notation || '')) {
@@ -21,7 +22,9 @@ export const WordPronunciationIcon = React.forwardRef<
       return word.name
     }
   }
-  const { play, stop, isPlaying } = usePronunciationSound(currentWord())
+  const youdaoSound = usePronunciationSound(currentWord())
+  const speechSound = useSentenceSpeechSound(currentWord())
+  const { play, stop, isPlaying } = useSpeechSynthesis ? speechSound : youdaoSound
 
   const playSound = useCallback(() => {
     stop()

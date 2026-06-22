@@ -4,6 +4,7 @@ import { ErrorBook } from './pages/ErrorBook'
 import { FriendLinks } from './pages/FriendLinks'
 import MobilePage from './pages/Mobile'
 import TypingPage from './pages/Typing'
+import GrammarSentencePage from '@/features/grammar-sentence/GrammarSentencePage'
 import { isOpenDarkModeAtom } from '@/store'
 import { Analytics } from '@vercel/analytics/react'
 import 'animate.css'
@@ -58,6 +59,7 @@ function Root() {
               <>
                 <Route index element={<TypingPage />} />
                 <Route path="/gallery" element={<GalleryPage />} />
+                <Route path="/grammar-sentence" element={<GrammarSentencePage />} />
                 <Route path="/analysis" element={<AnalysisPage />} />
                 <Route path="/error-book" element={<ErrorBook />} />
                 <Route path="/friend-links" element={<FriendLinks />} />

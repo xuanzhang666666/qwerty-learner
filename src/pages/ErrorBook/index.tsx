@@ -6,6 +6,7 @@ import Pagination, { ITEM_PER_PAGE } from './Pagination'
 import RowDetail from './RowDetail'
 import { currentRowDetailAtom } from './store'
 import type { groupedWordRecords } from './type'
+import { GRAMMAR_SENTENCE_DICT_ID, getGrammarSentenceWordByEnglish } from '@/features/grammar-sentence'
 import type { TErrorWordData } from '@/pages/Gallery-N/hooks/useErrorWords'
 import { ERROR_BOOK_REVIEW_DICT_ID, idDictionaryMap } from '@/resources/dictionary'
 import { currentChapterAtom, currentDictIdAtom, reviewModeInfoAtom } from '@/store'
@@ -120,14 +121,18 @@ export function ErrorBook() {
         const dictInfo = idDictionaryMap[record.dict]
         if (!dictInfo) continue
 
-        let wordList = wordListCache.get(record.dict)
-        if (!wordList) {
-          wordList = await wordListFetcher(dictInfo.url)
-          wordListCache.set(record.dict, wordList)
-        }
+        let originWord = record.dict === GRAMMAR_SENTENCE_DICT_ID ? await getGrammarSentenceWordByEnglish(record.word) : undefined
 
-        const word = wordList.find((item) => item.name === record.word)
-        if (!word) continue
+        if (!originWord && record.dict !== GRAMMAR_SENTENCE_DICT_ID) {
+          let wordList = wordListCache.get(record.dict)
+          if (!wordList) {
+            wordList = await wordListFetcher(dictInfo.url)
+            wordListCache.set(record.dict, wordList)
+          }
+
+          originWord = wordList.find((item) => item.name === record.word)
+        }
+        if (!originWord) continue
 
         const errorLetters: Record<string, number> = {}
         record.records.forEach((wordRecord) => {
@@ -141,7 +146,7 @@ export function ErrorBook() {
 
         errorData.push({
           word: record.word,
-          originData: { ...word, sourceDict: record.dict },
+          originData: { ...originWord, sourceDict: record.dict },
           errorCount: record.wrongCount,
           errorLetters,
           errorChar: Object.entries(errorLetters)

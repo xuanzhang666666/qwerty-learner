@@ -1,3 +1,4 @@
+import { GRAMMAR_SENTENCE_DICT_ID, grammarSentenceDictionary } from '@/features/grammar-sentence'
 import type { Dictionary, DictionaryResource } from '@/typings/index'
 import { calcChapterCount } from '@/utils'
 
@@ -4215,4 +4216,5 @@ const errorBookReviewDictionary: Dictionary = {
 export const idDictionaryMap: Record<string, Dictionary> = {
   ...Object.fromEntries(dictionaries.map((dict) => [dict.id, dict])),
   [ERROR_BOOK_REVIEW_DICT_ID]: errorBookReviewDictionary,
+  [GRAMMAR_SENTENCE_DICT_ID]: grammarSentenceDictionary,
 }

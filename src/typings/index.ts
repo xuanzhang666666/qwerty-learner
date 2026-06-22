@@ -24,8 +24,14 @@ export type Word = {
   trans: string[]
   usphone: string
   ukphone: string
+  wordPhonetics?: WordPhonetic[]
   notation?: string
   sourceDict?: string
+}
+
+export type WordPhonetic = {
+  word: string
+  phonetic: string
 }
 
 export type WordWithIndex = Word & {

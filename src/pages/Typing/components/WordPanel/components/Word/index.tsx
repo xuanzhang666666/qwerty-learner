@@ -10,6 +10,8 @@ import Tooltip from '@/components/Tooltip'
 import type { WordPronunciationIconRef } from '@/components/WordPronunciationIcon'
 import { WordPronunciationIcon } from '@/components/WordPronunciationIcon'
 import { EXPLICIT_SPACE } from '@/constants'
+import { GRAMMAR_SENTENCE_DICT_ID } from '@/features/grammar-sentence'
+import { getSentenceResetStateAfterWrongInput } from '@/features/grammar-sentence/utils/resetCurrentWord'
 import useKeySounds from '@/hooks/useKeySounds'
 import { TypingContext, TypingStateActionType } from '@/pages/Typing/store'
 import { ERROR_BOOK_REVIEW_DICT_ID } from '@/resources/dictionary'
@@ -51,6 +53,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   const currentLanguage = useAtomValue(currentDictInfoAtom).language
   const currentLanguageCategory = useAtomValue(currentDictInfoAtom).languageCategory
   const currentDictId = useAtomValue(currentDictIdAtom)
+  const isGrammarSentenceDict = currentDictId === GRAMMAR_SENTENCE_DICT_ID
   const currentChapter = useAtomValue(currentChapterAtom)
   const addWordToErrorBook = useAddWordToErrorBook()
 
@@ -248,8 +251,18 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     if (wordState.hasWrong) {
       const timer = setTimeout(() => {
         setWordState((state) => {
-          state.inputWord = ''
-          state.letterStates = new Array(state.letterStates.length).fill('normal')
+          if (isGrammarSentenceDict) {
+            const resetState = getSentenceResetStateAfterWrongInput({
+              displayWord: state.displayWord,
+              inputWord: state.inputWord,
+              letterStates: state.letterStates,
+            })
+            state.inputWord = resetState.inputWord
+            state.letterStates = resetState.letterStates
+          } else {
+            state.inputWord = ''
+            state.letterStates = new Array(state.letterStates.length).fill('normal')
+          }
           state.hasWrong = false
         })
       }, 300)
@@ -258,7 +271,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         clearTimeout(timer)
       }
     }
-  }, [wordState.hasWrong, setWordState])
+  }, [isGrammarSentenceDict, wordState.hasWrong, setWordState])
 
   useEffect(() => {
     if (wordState.isFinished) {
@@ -318,7 +331,9 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           <div
             onMouseEnter={() => handleHoverWord(true)}
             onMouseLeave={() => handleHoverWord(false)}
-            className={`flex items-center ${isTextSelectable && 'select-all'} justify-center ${wordState.hasWrong ? style.wrong : ''}`}
+            className={`flex items-center ${isTextSelectable && 'select-all'} justify-center ${
+              isGrammarSentenceDict ? 'max-w-5xl flex-wrap gap-y-2 px-8 text-center' : ''
+            } ${wordState.hasWrong ? style.wrong : ''}`}
           >
             {wordState.displayWord.split('').map((t, index) => {
               return <Letter key={`${index}-${t}`} letter={t} visible={getLetterVisible(index)} state={wordState.letterStates[index]} />
@@ -327,11 +342,17 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           {pronunciationIsOpen && (
             <div className="absolute -right-12 top-1/2 h-9 w-9 -translate-y-1/2 transform ">
               <Tooltip content={`快捷键${CTRL} + J`}>
-                <WordPronunciationIcon word={word} lang={currentLanguage} ref={wordPronunciationIconRef} className="h-full w-full" />
+                <WordPronunciationIcon
+                  word={word}
+                  lang={currentLanguage}
+                  ref={wordPronunciationIconRef}
+                  className="h-full w-full"
+                  useSpeechSynthesis={isGrammarSentenceDict}
+                />
               </Tooltip>
             </div>
           )}
-          {currentDictId !== ERROR_BOOK_REVIEW_DICT_ID && (
+          {currentDictId !== ERROR_BOOK_REVIEW_DICT_ID && !isGrammarSentenceDict && (
             <div className="absolute left-full top-1/2 ml-16 -translate-y-1/2">
               <Tooltip content={isAddedToErrorBook ? '已加入错题本' : '加入错题本'}>
                 <button
