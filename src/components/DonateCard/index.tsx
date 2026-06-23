@@ -63,18 +63,9 @@ export const DonateCard = () => {
     setAmount(amount)
   }
 
+  // 弹窗已停用：本地部署不再展示捐赠弹窗。保留 hooks 调用以维持原有依赖结构。
   useLayoutEffect(() => {
-    if (chapterNumber && chapterNumber !== 0 && chapterNumber % 5 === 0) {
-      const now = dayjs()
-
-      const storedDonateDate = window.localStorage.getItem(DONATE_DATE)
-      if (storedDonateDate) {
-        const diff = now.diff(dayjs(storedDonateDate), 'day')
-        if (diff <= 30) return
-      }
-
-      setShow(true)
-    }
+    setShow(false)
   }, [chapterNumber])
 
   return (
