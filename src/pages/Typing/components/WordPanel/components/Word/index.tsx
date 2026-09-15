@@ -32,6 +32,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useImmer } from 'use-immer'
 import IconBookmarkPlus from '~icons/tabler/bookmark-plus'
+import IconPlayerSkipForward from '~icons/tabler/player-skip-forward'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
@@ -285,6 +286,10 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     }
   }, [addWordToErrorBook, isAddedToErrorBook, word.name])
 
+  const handleSkipWord = useCallback(() => {
+    dispatch({ type: TypingStateActionType.SKIP_WORD })
+  }, [dispatch])
+
   return (
     <>
       <InputHandler updateInput={updateInput} />
@@ -324,7 +329,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
             </div>
           )}
           {currentDictId !== ERROR_BOOK_REVIEW_DICT_ID && !isGrammarSentenceDict && (
-            <div className="absolute left-full top-1/2 ml-16 -translate-y-1/2">
+            <div className="absolute left-full top-1/2 ml-16 flex -translate-y-1/2 flex-col gap-3">
               <Tooltip content={isAddedToErrorBook ? '已加入错题本' : '加入错题本'}>
                 <button
                   aria-label={isAddedToErrorBook ? '已加入错题本' : '加入错题本'}
@@ -337,6 +342,17 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
                   type="button"
                 >
                   <IconBookmarkPlus className="h-5 w-5" />
+                </button>
+              </Tooltip>
+              <Tooltip content="跳过该词">
+                <button
+                  aria-label="跳过该词"
+                  className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-gray-500 shadow-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                  onClick={handleSkipWord}
+                  title="跳过该词"
+                  type="button"
+                >
+                  <IconPlayerSkipForward className="h-5 w-5" />
                 </button>
               </Tooltip>
             </div>

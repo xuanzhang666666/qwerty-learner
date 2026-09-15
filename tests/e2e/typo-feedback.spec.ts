@@ -19,3 +19,10 @@ test('keeps the correct prefix after a wrong key so the word can be completed', 
   await expect(page.locator('span', { hasText: /^e$/ }).first()).toBeVisible()
   await expect(page.locator('div', { hasText: '输入数' }).locator('span', { hasText: /^6$/ }).first()).toBeVisible()
 })
+
+test('skips the current word from the word action area', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: '跳过该词' }).click()
+  await expect(page.locator('span', { hasText: /^e$/ }).first()).toBeVisible()
+})
