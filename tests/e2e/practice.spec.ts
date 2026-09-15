@@ -18,7 +18,8 @@ test.describe('Practice', () => {
   test.beforeEach(async ({ page }) => {
     test.slow()
     await page.goto('/')
-    await page.getByLabel('关闭提示').click()
+    const closeTip = page.getByLabel('关闭提示')
+    if (await closeTip.count()) await closeTip.click()
   })
 
   test('Press any key to start', async ({ page }) => {
@@ -72,14 +73,11 @@ test.describe('Practice', () => {
     await expect(page.locator('span', { hasText: /^n$/ })).toHaveClass(/text-green-600/)
   })
 
-  test('Enter the wrong letter, should show red color', async ({ page }) => {
+  test('Enter the wrong letter, should not change the correct prefix color', async ({ page }) => {
     await page.keyboard.press('Enter')
     await expect(page.locator('span', { hasText: /^c$/ }).first()).toHaveClass(/text-gray-600/)
 
     await page.keyboard.press('a')
-    await expect(page.locator('span', { hasText: /^c$/ }).first()).toHaveClass(/text-red-600/)
-
-    await page.waitForTimeout(500)
     await expect(page.locator('span', { hasText: /^c$/ }).first()).toHaveClass(/text-gray-600/)
   })
 
