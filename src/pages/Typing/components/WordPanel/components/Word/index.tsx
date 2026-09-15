@@ -11,7 +11,6 @@ import type { WordPronunciationIconRef } from '@/components/WordPronunciationIco
 import { WordPronunciationIcon } from '@/components/WordPronunciationIcon'
 import { EXPLICIT_SPACE } from '@/constants'
 import { GRAMMAR_SENTENCE_DICT_ID } from '@/features/grammar-sentence'
-import { getSentenceResetStateAfterWrongInput } from '@/features/grammar-sentence/utils/resetCurrentWord'
 import useKeySounds from '@/hooks/useKeySounds'
 import { TypingContext, TypingStateActionType } from '@/pages/Typing/store'
 import { ERROR_BOOK_REVIEW_DICT_ID } from '@/resources/dictionary'
@@ -87,26 +86,47 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   const updateInput = useCallback(
     (updateAction: WordUpdateAction) => {
       switch (updateAction.type) {
-        case 'add':
-          if (wordState.hasWrong) return
+        case 'add': {
+          const inputChar = updateAction.value === ' ' ? EXPLICIT_SPACE : updateAction.value
+          if (updateAction.value === ' ') updateAction.event.preventDefault()
 
-          if (updateAction.value === ' ') {
-            updateAction.event.preventDefault()
+          const inputIndex = wordState.inputWord.length
+          const correctChar = wordState.displayWord[inputIndex]
+          const isEqual =
+            inputChar !== undefined &&
+            correctChar !== undefined &&
+            (isIgnoreCase ? inputChar.toLowerCase() === correctChar.toLowerCase() : inputChar === correctChar)
+
+          if (!isEqual) {
+            playBeepSound()
             setWordState((state) => {
-              state.inputWord = state.inputWord + EXPLICIT_SPACE
+              state.wrongCount += 1
+              state.hasMadeInputWrong = true
+              if (state.letterMistake[inputIndex]) {
+                state.letterMistake[inputIndex].push(inputChar)
+              } else {
+                state.letterMistake[inputIndex] = [inputChar]
+              }
             })
-          } else {
-            setWordState((state) => {
-              state.inputWord = state.inputWord + updateAction.value
-            })
+            dispatch({ type: TypingStateActionType.REPORT_WRONG_WORD, payload: { letterMistake: { [inputIndex]: [inputChar] } } })
+
+            if (currentChapter === 0 && state.chapterData.index === 0 && wordState.wrongCount >= 3) {
+              setShowTipAlert(true)
+            }
+            return
           }
+
+          setWordState((state) => {
+            state.inputWord += inputChar
+          })
           break
+        }
 
         default:
           console.warn('unknown update type', updateAction)
       }
     },
-    [wordState.hasWrong, setWordState],
+    [currentChapter, dispatch, isIgnoreCase, playBeepSound, setWordState, state.chapterData.index, wordState],
   )
 
   const handleHoverWord = useCallback((checked: boolean) => {
@@ -186,7 +206,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
      * 目前不影响生产环境，猜测是因为开发环境下 react 会两次调用 useEffect 从而展示了这个 warning
      * 但这终究是一个 bug，需要修复
      */
-    if (wordState.hasWrong || inputLength === 0 || wordState.displayWord.length === 0) {
+    if (inputLength === 0 || wordState.displayWord.length === 0) {
       return
     }
 
@@ -220,58 +240,9 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
       }
 
       dispatch({ type: TypingStateActionType.REPORT_CORRECT_WORD })
-    } else {
-      // 出错时
-      playBeepSound()
-      setWordState((state) => {
-        state.letterStates[inputLength - 1] = 'wrong'
-        state.hasWrong = true
-        state.hasMadeInputWrong = true
-        state.wrongCount += 1
-        state.letterTimeArray = []
-
-        if (state.letterMistake[inputLength - 1]) {
-          state.letterMistake[inputLength - 1].push(inputChar)
-        } else {
-          state.letterMistake[inputLength - 1] = [inputChar]
-        }
-
-        const currentState = JSON.parse(JSON.stringify(state))
-        dispatch({ type: TypingStateActionType.REPORT_WRONG_WORD, payload: { letterMistake: currentState.letterMistake } })
-      })
-
-      if (currentChapter === 0 && state.chapterData.index === 0 && wordState.wrongCount >= 3) {
-        setShowTipAlert(true)
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wordState.inputWord])
-
-  useEffect(() => {
-    if (wordState.hasWrong) {
-      const timer = setTimeout(() => {
-        setWordState((state) => {
-          if (isGrammarSentenceDict) {
-            const resetState = getSentenceResetStateAfterWrongInput({
-              displayWord: state.displayWord,
-              inputWord: state.inputWord,
-              letterStates: state.letterStates,
-            })
-            state.inputWord = resetState.inputWord
-            state.letterStates = resetState.letterStates
-          } else {
-            state.inputWord = ''
-            state.letterStates = new Array(state.letterStates.length).fill('normal')
-          }
-          state.hasWrong = false
-        })
-      }, 300)
-
-      return () => {
-        clearTimeout(timer)
-      }
-    }
-  }, [isGrammarSentenceDict, wordState.hasWrong, setWordState])
 
   useEffect(() => {
     if (wordState.isFinished) {
