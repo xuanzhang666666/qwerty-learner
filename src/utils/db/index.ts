@@ -138,9 +138,9 @@ export function useAddWordToErrorBook() {
 }
 
 export function useDeleteWordRecord() {
-  const deleteWordRecord = useCallback(async (word: string, dict: string) => {
+  const deleteWordRecord = useCallback(async (word: string) => {
     try {
-      const deletedCount = await db.wordRecords.where({ word, dict }).delete()
+      const deletedCount = await db.wordRecords.where('word').equals(word).delete()
       return deletedCount
     } catch (error) {
       console.error(`删除单词记录时出错：`, error)

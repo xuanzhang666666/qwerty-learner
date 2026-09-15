@@ -79,10 +79,12 @@ export function ErrorBook() {
       records
         .filter((record) => record.dict !== ERROR_BOOK_REVIEW_DICT_ID)
         .forEach((record) => {
-          let group = groups.find((g) => g.word === record.word && g.dict === record.dict)
+          let group = groups.find((g) => g.word === record.word)
           if (!group) {
             group = { word: record.word, dict: record.dict, records: [], wrongCount: 0, correctCount: 0 }
             groups.push(group)
+          } else if (record.timeStamp > Math.max(...group.records.map((item) => item.timeStamp))) {
+            group.dict = record.dict
           }
           group.records.push(record as WordRecord)
         })
@@ -102,8 +104,8 @@ export function ErrorBook() {
     })
   }, [reload])
 
-  const handleDelete = async (word: string, dict: string) => {
-    await deleteWordRecord(word, dict)
+  const handleDelete = async (word: string) => {
+    await deleteWordRecord(word)
     setReload((prev) => !prev)
   }
 
@@ -208,11 +210,7 @@ export function ErrorBook() {
               <ScrollArea.Viewport className="h-full  ">
                 <div className="flex flex-col gap-3">
                   {renderRecords.map((record) => (
-                    <ErrorRow
-                      key={`${record.dict}-${record.word}`}
-                      record={record}
-                      onDelete={() => handleDelete(record.word, record.dict)}
-                    />
+                    <ErrorRow key={record.word} record={record} onDelete={() => handleDelete(record.word)} />
                   ))}
                 </div>
               </ScrollArea.Viewport>
