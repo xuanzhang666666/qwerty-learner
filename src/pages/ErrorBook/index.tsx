@@ -22,6 +22,7 @@ import IconX from '~icons/tabler/x'
 
 export function ErrorBook() {
   const [groupedRecords, setGroupedRecords] = useState<groupedWordRecords[]>([])
+  const [searchKeyword, setSearchKeyword] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = useMemo(() => Math.ceil(groupedRecords.length / ITEM_PER_PAGE), [groupedRecords.length])
   const [sortField, setSortField] = useState<'word' | 'wrongCount' | 'correctCount' | 'createdAt' | 'updatedAt'>('word')
@@ -58,8 +59,11 @@ export function ErrorBook() {
   )
 
   const sortedRecords = useMemo(() => {
-    if (sortType === 'none') return groupedRecords
-    return [...groupedRecords].sort((a, b) => {
+    const filteredRecords = groupedRecords.filter((record) =>
+      record.word.toLocaleLowerCase().includes(searchKeyword.trim().toLocaleLowerCase()),
+    )
+    if (sortType === 'none') return filteredRecords
+    return [...filteredRecords].sort((a, b) => {
       const left = sortField === 'word' ? a.word.localeCompare(b.word) : a[sortField] - b[sortField]
       if (sortType === 'asc') {
         return left
@@ -67,7 +71,15 @@ export function ErrorBook() {
         return -left
       }
     })
-  }, [groupedRecords, sortField, sortType])
+  }, [groupedRecords, searchKeyword, sortField, sortType])
+
+  const handleSearchKeywordChange = useCallback(
+    (keyword: string) => {
+      setSearchKeyword(keyword)
+      setPage(1)
+    },
+    [setPage],
+  )
 
   const renderRecords = useMemo(() => {
     const start = (currentPage - 1) * ITEM_PER_PAGE
@@ -200,7 +212,17 @@ export function ErrorBook() {
         <div className="flex w-full flex-1 select-text items-start justify-center overflow-hidden">
           <div className="flex h-full w-5/6 flex-col pt-10">
             <div className="mb-4 flex items-center justify-between">
-              <div className="text-sm text-red-500">{reviewError}</div>
+              <div className="flex items-center gap-3">
+                <input
+                  aria-label="搜索错题单词"
+                  className="h-10 w-64 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  onChange={(event) => handleSearchKeywordChange(event.target.value)}
+                  placeholder="搜索单词"
+                  type="search"
+                  value={searchKeyword}
+                />
+                <div className="text-sm text-red-500">{reviewError}</div>
+              </div>
               <div className="flex items-center gap-3">
                 <DropdownExport renderRecords={sortedRecords} />
                 <button
