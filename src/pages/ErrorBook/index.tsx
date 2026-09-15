@@ -201,14 +201,17 @@ export function ErrorBook() {
           <div className="flex h-full w-5/6 flex-col pt-10">
             <div className="mb-4 flex items-center justify-between">
               <div className="text-sm text-red-500">{reviewError}</div>
-              <button
-                className="my-btn-primary h-10 px-5 text-base font-bold disabled:cursor-not-allowed disabled:bg-gray-300"
-                disabled={sortedRecords.length === 0 || isPreparingReview}
-                onClick={handleStartReview}
-                type="button"
-              >
-                {isPreparingReview ? '正在生成...' : '复习全部错题'}
-              </button>
+              <div className="flex items-center gap-3">
+                <DropdownExport renderRecords={sortedRecords} />
+                <button
+                  className="my-btn-primary h-10 px-5 text-base font-bold disabled:cursor-not-allowed disabled:bg-gray-300"
+                  disabled={sortedRecords.length === 0 || isPreparingReview}
+                  onClick={handleStartReview}
+                  type="button"
+                >
+                  {isPreparingReview ? '正在生成...' : '复习全部错题'}
+                </button>
+              </div>
             </div>
             <div className="flex w-full rounded-lg bg-white px-6 py-5 text-left text-lg text-black shadow-lg dark:bg-gray-800 dark:text-white">
               <HeadWrongNumber
@@ -243,7 +246,6 @@ export function ErrorBook() {
                 sortType={sortField === 'updatedAt' ? sortType : 'none'}
                 setSortType={(type) => setSort('updatedAt', type)}
               />
-              <DropdownExport renderRecords={sortedRecords} />
             </div>
             <ScrollArea.Root className="flex-1 overflow-y-auto pt-5">
               <ScrollArea.Viewport className="h-full  ">

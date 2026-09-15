@@ -10,7 +10,7 @@ import type { FC } from 'react'
 import { useCallback } from 'react'
 import DeleteIcon from '~icons/weui/delete-filled'
 
-const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString('zh-CN', { hour12: false })
+const formatTime = (timestamp: number) => new Date(timestamp * 1000).toLocaleString('zh-CN', { hour12: false })
 
 type IErrorRowProps = {
   record: groupedWordRecords
