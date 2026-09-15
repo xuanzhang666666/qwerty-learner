@@ -17,7 +17,7 @@ export default function ErrorBookStats({ word }: { word: string }) {
   )
 
   return (
-    <div className="pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
+    <div className="pb-4 text-center text-base text-gray-500 dark:text-gray-400">
       错题本：错误 {wrongCount} · 正确 {correctCount}
     </div>
   )
