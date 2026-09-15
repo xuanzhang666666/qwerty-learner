@@ -10,6 +10,8 @@ import type { FC } from 'react'
 import { useCallback } from 'react'
 import DeleteIcon from '~icons/weui/delete-filled'
 
+const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString('zh-CN', { hour12: false })
+
 type IErrorRowProps = {
   record: groupedWordRecords
   onDelete: () => void
@@ -27,7 +29,7 @@ const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
 
   return (
     <li
-      className="opacity-85 flex w-full cursor-pointer items-center justify-between rounded-lg bg-white px-6 py-3 text-black shadow-md dark:bg-gray-800 dark:text-white"
+      className="opacity-85 flex w-full cursor-pointer items-center rounded-lg bg-white px-6 py-3 text-left text-black shadow-md dark:bg-gray-800 dark:text-white"
       onClick={onClick}
     >
       <span className="flex basis-2/12 items-center gap-3 break-normal">
@@ -70,6 +72,8 @@ const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
       <span className="basis-1/12 break-normal pl-8">{record.wrongCount}</span>
       <span className="basis-1/12 break-normal pl-8">{record.correctCount}</span>
       <span className="basis-1/12 break-normal">{dictInfo?.name}</span>
+      <span className="basis-1/12 break-normal text-sm text-gray-500 dark:text-gray-400">{formatTime(record.createdAt)}</span>
+      <span className="basis-1/12 break-normal text-sm text-gray-500 dark:text-gray-400">{formatTime(record.updatedAt)}</span>
     </li>
   )
 }

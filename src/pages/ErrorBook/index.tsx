@@ -24,6 +24,7 @@ export function ErrorBook() {
   const [groupedRecords, setGroupedRecords] = useState<groupedWordRecords[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = useMemo(() => Math.ceil(groupedRecords.length / ITEM_PER_PAGE), [groupedRecords.length])
+  const [sortField, setSortField] = useState<'word' | 'wrongCount' | 'correctCount' | 'createdAt' | 'updatedAt'>('word')
   const [sortType, setSortType] = useState<ISortType>('asc')
   const navigate = useNavigate()
   const currentRowDetail = useAtomValue(currentRowDetailAtom)
@@ -48,7 +49,8 @@ export function ErrorBook() {
   )
 
   const setSort = useCallback(
-    (sortType: ISortType) => {
+    (field: typeof sortField, sortType: ISortType) => {
+      setSortField(field)
       setSortType(sortType)
       setPage(1)
     },
@@ -58,13 +60,14 @@ export function ErrorBook() {
   const sortedRecords = useMemo(() => {
     if (sortType === 'none') return groupedRecords
     return [...groupedRecords].sort((a, b) => {
+      const left = sortField === 'word' ? a.word.localeCompare(b.word) : a[sortField] - b[sortField]
       if (sortType === 'asc') {
-        return a.wrongCount - b.wrongCount
+        return left
       } else {
-        return b.wrongCount - a.wrongCount
+        return -left
       }
     })
-  }, [groupedRecords, sortType])
+  }, [groupedRecords, sortField, sortType])
 
   const renderRecords = useMemo(() => {
     const start = (currentPage - 1) * ITEM_PER_PAGE
@@ -81,7 +84,15 @@ export function ErrorBook() {
         .forEach((record) => {
           let group = groups.find((g) => g.word === record.word)
           if (!group) {
-            group = { word: record.word, dict: record.dict, records: [], wrongCount: 0, correctCount: 0 }
+            group = {
+              word: record.word,
+              dict: record.dict,
+              records: [],
+              wrongCount: 0,
+              correctCount: 0,
+              createdAt: record.timeStamp,
+              updatedAt: record.timeStamp,
+            }
             groups.push(group)
           } else if (record.timeStamp > Math.max(...group.records.map((item) => item.timeStamp))) {
             group.dict = record.dict
@@ -98,6 +109,8 @@ export function ErrorBook() {
           acc += cur.correctCount ?? 0
           return acc
         }, 0)
+        group.createdAt = Math.min(...group.records.map((record) => record.timeStamp))
+        group.updatedAt = Math.max(...group.records.map((record) => record.timeStamp))
       })
 
       setGroupedRecords(groups.filter((group) => group.wrongCount > 0))
@@ -197,13 +210,39 @@ export function ErrorBook() {
                 {isPreparingReview ? '正在生成...' : '复习全部错题'}
               </button>
             </div>
-            <div className="flex w-full justify-between rounded-lg bg-white px-6 py-5 text-lg text-black shadow-lg dark:bg-gray-800 dark:text-white">
-              <span className="basis-2/12">单词</span>
+            <div className="flex w-full rounded-lg bg-white px-6 py-5 text-left text-lg text-black shadow-lg dark:bg-gray-800 dark:text-white">
+              <HeadWrongNumber
+                className="basis-2/12"
+                label="单词"
+                sortType={sortField === 'word' ? sortType : 'none'}
+                setSortType={(type) => setSort('word', type)}
+              />
               <span className="basis-2/12">音标</span>
               <span className="basis-3/12">释义</span>
-              <HeadWrongNumber className="basis-1/12" sortType={sortType} setSortType={setSort} />
-              <span className="basis-1/12">正确次数</span>
+              <HeadWrongNumber
+                className="basis-1/12"
+                sortType={sortField === 'wrongCount' ? sortType : 'none'}
+                setSortType={(type) => setSort('wrongCount', type)}
+              />
+              <HeadWrongNumber
+                className="basis-1/12"
+                label="正确次数"
+                sortType={sortField === 'correctCount' ? sortType : 'none'}
+                setSortType={(type) => setSort('correctCount', type)}
+              />
               <span className="basis-1/12">词典</span>
+              <HeadWrongNumber
+                className="basis-1/12"
+                label="创建时间"
+                sortType={sortField === 'createdAt' ? sortType : 'none'}
+                setSortType={(type) => setSort('createdAt', type)}
+              />
+              <HeadWrongNumber
+                className="basis-1/12"
+                label="更新时间"
+                sortType={sortField === 'updatedAt' ? sortType : 'none'}
+                setSortType={(type) => setSort('updatedAt', type)}
+              />
               <DropdownExport renderRecords={sortedRecords} />
             </div>
             <ScrollArea.Root className="flex-1 overflow-y-auto pt-5">

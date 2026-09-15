@@ -6,4 +6,6 @@ export type groupedWordRecords = {
   records: WordRecord[]
   wrongCount: number
   correctCount: number
+  createdAt: number
+  updatedAt: number
 }

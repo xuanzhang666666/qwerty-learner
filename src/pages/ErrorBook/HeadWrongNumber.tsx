@@ -8,11 +8,12 @@ type IHeadWrongNumberProps = {
   className?: string
   sortType: ISortType
   setSortType: (sortType: ISortType) => void
+  label?: string
 }
 
 export type ISortType = 'asc' | 'desc' | 'none'
 
-const HeadWrongNumber: FC<IHeadWrongNumberProps> = ({ className, sortType, setSortType }) => {
+const HeadWrongNumber: FC<IHeadWrongNumberProps> = ({ className, sortType, setSortType, label = '错误次数' }) => {
   const onClick = useCallback(() => {
     const sortTypes: Record<ISortType, ISortType> = {
       asc: 'desc',
@@ -24,7 +25,7 @@ const HeadWrongNumber: FC<IHeadWrongNumberProps> = ({ className, sortType, setSo
 
   return (
     <span className={`relative cursor-pointer ${className}`} onClick={onClick}>
-      错误次数
+      {label}
       <div className="absolute -right-2 bottom-0 top-0 flex flex-col items-center justify-center text-[12px]">
         <UPIcon
           className={classNames('-mb-2 ', {
