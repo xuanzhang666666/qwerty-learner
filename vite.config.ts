@@ -50,5 +50,8 @@ export default defineConfig(async ({ mode }) => {
         localsConvention: 'camelCaseOnly',
       },
     },
+    test: {
+      setupFiles: './src/test/setup.ts',
+    },
   }
 })
