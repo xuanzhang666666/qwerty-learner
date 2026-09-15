@@ -13,6 +13,7 @@ import { currentChapterAtom, currentDictIdAtom, reviewModeInfoAtom } from '@/sto
 import { db, useDeleteWordRecord } from '@/utils/db'
 import type { WordRecord } from '@/utils/db/record'
 import { generateNewWordReviewRecord } from '@/utils/db/review-record'
+import { isReviewDue } from '@/utils/db/spaced-repetition'
 import { wordListFetcher } from '@/utils/wordListFetcher'
 import * as ScrollArea from '@radix-ui/react-scroll-area'
 import { useAtomValue, useSetAtom } from 'jotai'
@@ -88,7 +89,8 @@ export function ErrorBook() {
   }, [currentPage, sortedRecords])
 
   useEffect(() => {
-    db.wordRecords.toArray().then((records) => {
+    Promise.all([db.wordRecords.toArray(), db.spacedRepetitionRecords.toArray()]).then(([records, schedules]) => {
+      const scheduleMap = new Map(schedules.map((schedule) => [schedule.word, schedule]))
       const groups: groupedWordRecords[] = []
 
       records
@@ -123,6 +125,7 @@ export function ErrorBook() {
         }, 0)
         group.createdAt = Math.min(...group.records.map((record) => record.timeStamp))
         group.updatedAt = Math.max(...group.records.map((record) => record.timeStamp))
+        group.nextReviewAt = scheduleMap.get(group.word)?.nextReviewAt
       })
 
       setGroupedRecords(groups.filter((group) => group.wrongCount > 0))
@@ -135,16 +138,21 @@ export function ErrorBook() {
   }
 
   const handleStartReview = useCallback(async () => {
-    if (sortedRecords.length === 0 || isPreparingReview) return
+    if (groupedRecords.length === 0 || isPreparingReview) return
 
     setIsPreparingReview(true)
     setReviewError(null)
 
     try {
+      const dueRecords = groupedRecords.filter((record) => isReviewDue(record.nextReviewAt))
+      if (dueRecords.length === 0) {
+        setReviewError('暂无到期错题，稍后再来复习')
+        return
+      }
       const wordListCache = new Map<string, Awaited<ReturnType<typeof wordListFetcher>>>()
       const errorData: TErrorWordData[] = []
 
-      for (const record of sortedRecords) {
+      for (const record of dueRecords) {
         const dictInfo = idDictionaryMap[record.dict]
         if (!dictInfo) continue
 
@@ -188,7 +196,7 @@ export function ErrorBook() {
         return
       }
 
-      const record = await generateNewWordReviewRecord(ERROR_BOOK_REVIEW_DICT_ID, errorData, { shuffle: true })
+      const record = await generateNewWordReviewRecord(ERROR_BOOK_REVIEW_DICT_ID, errorData, { shuffle: false })
       setCurrentDictId(ERROR_BOOK_REVIEW_DICT_ID)
       setCurrentChapter(-1)
       setReviewModeInfo({ isReviewMode: true, reviewRecord: record })
@@ -199,7 +207,7 @@ export function ErrorBook() {
     } finally {
       setIsPreparingReview(false)
     }
-  }, [isPreparingReview, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo, sortedRecords])
+  }, [groupedRecords, isPreparingReview, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo])
 
   return (
     <>
@@ -227,7 +235,7 @@ export function ErrorBook() {
                 <DropdownExport renderRecords={sortedRecords} />
                 <button
                   className="my-btn-primary h-10 px-5 text-base font-bold disabled:cursor-not-allowed disabled:bg-gray-300"
-                  disabled={sortedRecords.length === 0 || isPreparingReview}
+                  disabled={groupedRecords.length === 0 || isPreparingReview}
                   onClick={handleStartReview}
                   type="button"
                 >
@@ -243,7 +251,7 @@ export function ErrorBook() {
                 setSortType={(type) => setSort('word', type)}
               />
               <span className="basis-2/12">音标</span>
-              <span className="basis-3/12">释义</span>
+              <span className="basis-2/12">释义</span>
               <HeadWrongNumber
                 className="basis-1/12"
                 sortType={sortField === 'wrongCount' ? sortType : 'none'}
@@ -268,6 +276,7 @@ export function ErrorBook() {
                 sortType={sortField === 'updatedAt' ? sortType : 'none'}
                 setSortType={(type) => setSort('updatedAt', type)}
               />
+              <span className="basis-1/12">下次复习</span>
             </div>
             <ScrollArea.Root className="flex-1 overflow-y-auto pt-5">
               <ScrollArea.Viewport className="h-full  ">

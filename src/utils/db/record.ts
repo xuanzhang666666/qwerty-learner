@@ -157,6 +157,14 @@ export class ReviewRecord implements IReviewRecord {
   }
 }
 
+export interface ISpacedRepetitionRecord {
+  word: string
+  stage: number
+  nextReviewAt: number
+  createdAt: number
+  updatedAt: number
+}
+
 export interface IRevisionDictRecord {
   dict: string
   revisionIndex: number

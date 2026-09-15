@@ -5,6 +5,7 @@ import type { groupedWordRecords } from './type'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { idDictionaryMap } from '@/resources/dictionary'
 import { recordErrorBookAction } from '@/utils'
+import { formatNextReviewStatus } from '@/utils/db/spaced-repetition'
 import { useSetAtom } from 'jotai'
 import type { FC } from 'react'
 import { useCallback } from 'react'
@@ -66,7 +67,7 @@ const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
           <LoadingWordUI isLoading={isLoading} hasError={hasError} />
         )}
       </span>
-      <span className="basis-3/12 break-normal">
+      <span className="basis-2/12 break-normal">
         {word ? word.trans.join('；') : <LoadingWordUI isLoading={isLoading} hasError={hasError} />}
       </span>
       <span className="basis-1/12 break-normal pl-8">{record.wrongCount}</span>
@@ -74,6 +75,9 @@ const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
       <span className="basis-1/12 break-normal">{dictInfo?.name}</span>
       <span className="basis-1/12 break-normal text-sm text-gray-500 dark:text-gray-400">{formatTime(record.createdAt)}</span>
       <span className="basis-1/12 break-normal text-sm text-gray-500 dark:text-gray-400">{formatTime(record.updatedAt)}</span>
+      <span className="basis-1/12 break-normal text-sm text-gray-500 dark:text-gray-400">
+        {formatNextReviewStatus(record.nextReviewAt)}
+      </span>
     </li>
   )
 }

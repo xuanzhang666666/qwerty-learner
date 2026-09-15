@@ -8,4 +8,5 @@ export type groupedWordRecords = {
   correctCount: number
   createdAt: number
   updatedAt: number
+  nextReviewAt?: number
 }

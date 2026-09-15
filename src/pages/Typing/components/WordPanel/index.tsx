@@ -9,6 +9,7 @@ import WordComponent from './components/Word'
 import { GRAMMAR_SENTENCE_DICT_ID } from '@/features/grammar-sentence'
 import { GrammarSentenceWordPhonetics } from '@/features/grammar-sentence/components/WordPhonetics'
 import { usePrefetchPronunciationSound } from '@/hooks/usePronunciation'
+import { ERROR_BOOK_REVIEW_DICT_ID } from '@/resources/dictionary'
 import {
   currentDictIdAtom,
   isReviewModeAtom,
@@ -18,8 +19,9 @@ import {
   reviewModeInfoAtom,
 } from '@/store'
 import type { Word } from '@/typings'
+import { recordSpacedRepetitionResult } from '@/utils/db/spaced-repetition'
 import { useAtomValue, useSetAtom } from 'jotai'
-import { useCallback, useContext, useMemo, useState } from 'react'
+import { useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 export default function WordPanel() {
@@ -30,6 +32,8 @@ export default function WordPanel() {
   const currentDictId = useAtomValue(currentDictIdAtom)
   const [wordComponentKey, setWordComponentKey] = useState(0)
   const [currentWordExerciseCount, setCurrentWordExerciseCount] = useState(0)
+  const failedErrorBookWordsRef = useRef(new Set<string>())
+  const scheduleUpdateQueueRef = useRef(Promise.resolve())
   const { times: loopWordTimes } = useAtomValue(loopWordConfigAtom)
   const currentWord = state.chapterData.words[state.chapterData.index]
   const nextWord = state.chapterData.words[state.chapterData.index + 1] as Word | undefined
@@ -63,15 +67,32 @@ export default function WordPanel() {
     [setReviewModeInfo],
   )
 
-  const onFinish = useCallback(() => {
-    if (state.chapterData.index < state.chapterData.words.length - 1 || currentWordExerciseCount < loopWordTimes - 1) {
-      // 用户完成当前单词
+  const onFinish = useCallback(
+    (hasWrong: boolean) => {
+      const isErrorBookReview = isReviewMode && currentDictId === ERROR_BOOK_REVIEW_DICT_ID
+      const shouldRetryAtEnd = isErrorBookReview && hasWrong
+
       if (currentWordExerciseCount < loopWordTimes - 1) {
         setCurrentWordExerciseCount((old) => old + 1)
         dispatch({ type: TypingStateActionType.LOOP_CURRENT_WORD })
         reloadCurrentWordComponent()
-      } else {
-        setCurrentWordExerciseCount(0)
+        return
+      }
+
+      setCurrentWordExerciseCount(0)
+      if (isErrorBookReview) {
+        if (hasWrong) failedErrorBookWordsRef.current.add(currentWord.name)
+        const succeeded = !hasWrong && !failedErrorBookWordsRef.current.has(currentWord.name)
+        scheduleUpdateQueueRef.current = scheduleUpdateQueueRef.current.then(async () => {
+          await recordSpacedRepetitionResult(currentWord.name, succeeded)
+        })
+        if (shouldRetryAtEnd) {
+          dispatch({ type: TypingStateActionType.APPEND_WORD, payload: currentWord })
+        }
+      }
+
+      if (state.chapterData.index < state.chapterData.words.length - 1 || shouldRetryAtEnd) {
+        // 用户完成当前单词
         if (isReviewMode) {
           dispatch({
             type: TypingStateActionType.NEXT_WORD,
@@ -82,25 +103,28 @@ export default function WordPanel() {
         } else {
           dispatch({ type: TypingStateActionType.NEXT_WORD })
         }
+      } else {
+        // 用户完成当前章节
+        dispatch({ type: TypingStateActionType.FINISH_CHAPTER })
+        if (isReviewMode) {
+          setReviewModeInfo((old) => ({ ...old, reviewRecord: old.reviewRecord ? { ...old.reviewRecord, isFinished: true } : undefined }))
+        }
       }
-    } else {
-      // 用户完成当前章节
-      dispatch({ type: TypingStateActionType.FINISH_CHAPTER })
-      if (isReviewMode) {
-        setReviewModeInfo((old) => ({ ...old, reviewRecord: old.reviewRecord ? { ...old.reviewRecord, isFinished: true } : undefined }))
-      }
-    }
-  }, [
-    state.chapterData.index,
-    state.chapterData.words.length,
-    currentWordExerciseCount,
-    loopWordTimes,
-    dispatch,
-    reloadCurrentWordComponent,
-    isReviewMode,
-    updateReviewRecord,
-    setReviewModeInfo,
-  ])
+    },
+    [
+      state.chapterData.index,
+      state.chapterData.words.length,
+      currentWordExerciseCount,
+      loopWordTimes,
+      dispatch,
+      reloadCurrentWordComponent,
+      isReviewMode,
+      updateReviewRecord,
+      setReviewModeInfo,
+      currentDictId,
+      currentWord,
+    ],
+  )
 
   const onSkipWord = useCallback(
     (type: 'prev' | 'next') => {

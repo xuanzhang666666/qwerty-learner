@@ -36,7 +36,7 @@ import IconPlayerSkipForward from '~icons/tabler/player-skip-forward'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
-export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
+export default function WordComponent({ word, onFinish }: { word: Word; onFinish: (hasWrong: boolean) => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
   const { state, dispatch } = useContext(TypingContext)!
   const [wordState, setWordState] = useImmer<WordState>(structuredClone(initialWordState))
@@ -264,7 +264,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         letterMistake: wordState.letterMistake,
       })
 
-      onFinish()
+      onFinish(wordState.wrongCount > 0)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wordState.isFinished])

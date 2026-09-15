@@ -1,17 +1,19 @@
-import { currentDictIdAtom } from '@/store'
+import { ERROR_BOOK_REVIEW_DICT_ID } from '@/resources/dictionary'
 import { db } from '@/utils/db'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
 
 export default function ErrorBookStats({ word }: { word: string }) {
-  const dict = useAtomValue(currentDictIdAtom)
-  const records = useLiveQuery(() => db.wordRecords.where({ word, dict }).toArray(), [dict, word])
+  const records = useLiveQuery(() => db.wordRecords.where('word').equals(word).toArray(), [word])
 
   const { correctCount, wrongCount } = useMemo(
     () => ({
-      correctCount: records?.reduce((total, record) => total + (record.correctCount ?? 0), 0) ?? 0,
-      wrongCount: records?.reduce((total, record) => total + record.wrongCount, 0) ?? 0,
+      correctCount:
+        records
+          ?.filter((record) => record.dict !== ERROR_BOOK_REVIEW_DICT_ID)
+          .reduce((total, record) => total + (record.correctCount ?? 0), 0) ?? 0,
+      wrongCount:
+        records?.filter((record) => record.dict !== ERROR_BOOK_REVIEW_DICT_ID).reduce((total, record) => total + record.wrongCount, 0) ?? 0,
     }),
     [records],
   )

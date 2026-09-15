@@ -44,6 +44,7 @@ export enum TypingStateActionType {
   REPORT_WRONG_WORD = 'REPORT_WRONG_WORD',
   REPORT_CORRECT_WORD = 'REPORT_CORRECT_WORD',
   NEXT_WORD = 'NEXT_WORD',
+  APPEND_WORD = 'APPEND_WORD',
   LOOP_CURRENT_WORD = 'LOOP_CURRENT_WORD',
   FINISH_CHAPTER = 'FINISH_CHAPTER',
   INCREASE_WRONG_WORD = 'INCREASE_WRONG_WORD',
@@ -74,6 +75,7 @@ export type TypingStateAction =
         updateReviewRecord?: (state: TypingState) => void
       }
     }
+  | { type: TypingStateActionType.APPEND_WORD; payload: WordWithIndex }
   | { type: TypingStateActionType.LOOP_CURRENT_WORD }
   | { type: TypingStateActionType.FINISH_CHAPTER }
   | { type: TypingStateActionType.SKIP_WORD }
@@ -138,6 +140,12 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       if (action?.payload?.updateReviewRecord) {
         action.payload.updateReviewRecord(state)
       }
+      break
+    }
+    case TypingStateActionType.APPEND_WORD: {
+      const word = { ...action.payload, index: state.chapterData.words.length }
+      state.chapterData.words.push(word)
+      state.chapterData.userInputLogs.push({ ...structuredClone(initialUserInputLog), index: word.index })
       break
     }
     case TypingStateActionType.LOOP_CURRENT_WORD:
