@@ -164,24 +164,15 @@ export function useRecordErrorBookCorrectAnswers() {
       return acc
     }, new Map<string, ErrorBookWordIdentity & { correctCount: number }>())
     const wordsWithCorrectCount = Array.from(wordCorrectCountMap.values())
-    let removedCount = 0
 
     await Promise.all(
       wordsWithCorrectCount.map(async ({ word, dict, correctCount: currentCorrectCount }) => {
         const correctRecord = new WordRecord(word, dict, -1, [], 0, {}, currentCorrectCount)
         await db.wordRecords.add(correctRecord)
-
-        const records = await db.wordRecords.where({ word, dict }).toArray()
-        const correctCount = records.reduce((acc, record) => acc + (record.correctCount ?? 0), 0)
-
-        if (correctCount > 20) {
-          await db.wordRecords.where({ word, dict }).delete()
-          removedCount += 1
-        }
       }),
     )
 
-    return { updatedCount: words.length, removedCount }
+    return { updatedCount: words.length, removedCount: 0 }
   }, [])
 
   return { recordErrorBookCorrectAnswers }
