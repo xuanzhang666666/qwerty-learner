@@ -30,7 +30,30 @@ const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
       className="opacity-85 flex w-full cursor-pointer items-center justify-between rounded-lg bg-white px-6 py-3 text-black shadow-md dark:bg-gray-800 dark:text-white"
       onClick={onClick}
     >
-      <span className="basis-2/12 break-normal">{record.word}</span>
+      <span className="flex basis-2/12 items-center gap-3 break-normal">
+        {record.word}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                aria-label={`删除 ${record.word}`}
+                className="text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete()
+                }}
+                title={`删除 ${record.word}`}
+                type="button"
+              >
+                <DeleteIcon />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>删除此词</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </span>
       <span className="basis-2/12 break-normal text-sm text-gray-500 dark:text-gray-400">
         {word ? (
           <>
@@ -47,24 +70,6 @@ const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
       <span className="basis-1/12 break-normal pl-8">{record.wrongCount}</span>
       <span className="basis-1/12 break-normal pl-8">{record.correctCount}</span>
       <span className="basis-1/12 break-normal">{dictInfo?.name}</span>
-      <span
-        className="basis-1/12 break-normal"
-        onClick={(e) => {
-          e.stopPropagation()
-          onDelete()
-        }}
-      >
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DeleteIcon />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Delete Records</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </span>
     </li>
   )
 }
