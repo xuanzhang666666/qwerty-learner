@@ -19,6 +19,7 @@
 ### Task 1: 编写本机可运行的失败回归测试
 
 **Files:**
+
 - Modify: `playwright.config.ts:25-31`
 - Modify: `tests/e2e/practice.spec.ts:61-70`
 
@@ -69,6 +70,7 @@ git commit -m "test: cover typo feedback without reset"
 ### Task 2: 仅在按键正确时追加输入
 
 **Files:**
+
 - Modify: `src/pages/Typing/components/WordPanel/components/Word/index.tsx:14-15,100-134,196-278`
 
 - [ ] **Step 1: 在 `updateInput` 中比较待输入字符**
@@ -139,4 +141,3 @@ npm run build
 git add src/pages/Typing/components/WordPanel/components/Word/index.tsx playwright.config.ts tests/e2e/practice.spec.ts
 git commit -m "fix: keep typing progress after typo"
 ```
-
