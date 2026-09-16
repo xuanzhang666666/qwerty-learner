@@ -33,10 +33,19 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { useImmer } from 'use-immer'
 import IconBookmarkPlus from '~icons/tabler/bookmark-plus'
 import IconPlayerSkipForward from '~icons/tabler/player-skip-forward'
+import IconTrash from '~icons/tabler/trash'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
-export default function WordComponent({ word, onFinish }: { word: Word; onFinish: (hasWrong: boolean) => void }) {
+export default function WordComponent({
+  word,
+  onFinish,
+  onDeleteFromErrorBook,
+}: {
+  word: Word
+  onFinish: (hasWrong: boolean) => void
+  onDeleteFromErrorBook?: () => void
+}) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
   const { state, dispatch } = useContext(TypingContext)!
   const [wordState, setWordState] = useImmer<WordState>(structuredClone(initialWordState))
@@ -357,6 +366,21 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
                   type="button"
                 >
                   <IconPlayerSkipForward className="h-5 w-5" />
+                </button>
+              </Tooltip>
+            </div>
+          )}
+          {currentDictId === ERROR_BOOK_REVIEW_DICT_ID && (
+            <div className="absolute left-full top-1/2 ml-16 flex -translate-y-1/2 flex-col gap-3">
+              <Tooltip content="从错题本删除">
+                <button
+                  aria-label="从错题本删除"
+                  className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 bg-white text-red-500 shadow-sm transition-colors hover:bg-red-50 dark:border-red-900 dark:bg-gray-800 dark:hover:bg-red-950"
+                  onClick={onDeleteFromErrorBook}
+                  title="从错题本删除"
+                  type="button"
+                >
+                  <IconTrash className="h-5 w-5" />
                 </button>
               </Tooltip>
             </div>

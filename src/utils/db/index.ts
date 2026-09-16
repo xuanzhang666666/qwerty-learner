@@ -148,6 +148,7 @@ export function useDeleteWordRecord() {
   const deleteWordRecord = useCallback(async (word: string) => {
     try {
       const deletedCount = await db.wordRecords.where('word').equals(word).delete()
+      await db.spacedRepetitionRecords.delete(word)
       return deletedCount
     } catch (error) {
       console.error(`删除单词记录时出错：`, error)

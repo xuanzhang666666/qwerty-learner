@@ -19,6 +19,7 @@ import {
   reviewModeInfoAtom,
 } from '@/store'
 import type { Word } from '@/typings'
+import { useDeleteWordRecord } from '@/utils/db'
 import { recordSpacedRepetitionResult } from '@/utils/db/spaced-repetition'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useCallback, useContext, useMemo, useRef, useState } from 'react'
@@ -41,6 +42,7 @@ export default function WordPanel() {
 
   const setReviewModeInfo = useSetAtom(reviewModeInfoAtom)
   const isReviewMode = useAtomValue(isReviewModeAtom)
+  const { deleteWordRecord } = useDeleteWordRecord()
 
   const prevIndex = useMemo(() => {
     const newIndex = state.chapterData.index - 1
@@ -126,6 +128,22 @@ export default function WordPanel() {
     ],
   )
 
+  const onDeleteFromErrorBook = useCallback(async () => {
+    await deleteWordRecord(currentWord.name)
+    const hasNextWord = state.chapterData.words.slice(state.chapterData.index + 1).some((word) => word.name !== currentWord.name)
+    dispatch({ type: TypingStateActionType.REMOVE_CURRENT_AND_FUTURE_WORD, payload: currentWord.name })
+    setReviewModeInfo((old) => ({
+      ...old,
+      reviewRecord: old.reviewRecord
+        ? {
+            ...old.reviewRecord,
+            words: old.reviewRecord.words.filter((word) => word.name !== currentWord.name),
+            isFinished: hasNextWord ? old.reviewRecord.isFinished : true,
+          }
+        : undefined,
+    }))
+  }, [currentWord.name, deleteWordRecord, dispatch, setReviewModeInfo, state.chapterData.index, state.chapterData.words])
+
   const onSkipWord = useCallback(
     (type: 'prev' | 'next') => {
       if (type === 'prev') {
@@ -207,7 +225,7 @@ export default function WordPanel() {
               </div>
             )}
             <div className="relative">
-              <WordComponent word={currentWord} onFinish={onFinish} key={wordComponentKey} />
+              <WordComponent word={currentWord} onDeleteFromErrorBook={onDeleteFromErrorBook} onFinish={onFinish} key={wordComponentKey} />
               {isGrammarSentenceDict && (
                 <GrammarSentenceWordPhonetics sentence={currentWord.name} wordPhonetics={currentWord.wordPhonetics} />
               )}

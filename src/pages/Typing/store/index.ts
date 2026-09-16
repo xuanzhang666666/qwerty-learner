@@ -45,6 +45,7 @@ export enum TypingStateActionType {
   REPORT_CORRECT_WORD = 'REPORT_CORRECT_WORD',
   NEXT_WORD = 'NEXT_WORD',
   APPEND_WORD = 'APPEND_WORD',
+  REMOVE_CURRENT_AND_FUTURE_WORD = 'REMOVE_CURRENT_AND_FUTURE_WORD',
   LOOP_CURRENT_WORD = 'LOOP_CURRENT_WORD',
   FINISH_CHAPTER = 'FINISH_CHAPTER',
   INCREASE_WRONG_WORD = 'INCREASE_WRONG_WORD',
@@ -63,7 +64,10 @@ export enum TypingStateActionType {
 }
 
 export type TypingStateAction =
-  | { type: TypingStateActionType.SETUP_CHAPTER; payload: { words: WordWithIndex[]; shouldShuffle: boolean; initialIndex?: number } }
+  | {
+      type: TypingStateActionType.SETUP_CHAPTER
+      payload: { words: WordWithIndex[]; shouldShuffle: boolean; initialIndex?: number; isTyping?: boolean }
+    }
   | { type: TypingStateActionType.SET_IS_SKIP; payload: boolean }
   | { type: TypingStateActionType.SET_IS_TYPING; payload: boolean }
   | { type: TypingStateActionType.TOGGLE_IS_TYPING }
@@ -76,6 +80,7 @@ export type TypingStateAction =
       }
     }
   | { type: TypingStateActionType.APPEND_WORD; payload: WordWithIndex }
+  | { type: TypingStateActionType.REMOVE_CURRENT_AND_FUTURE_WORD; payload: string }
   | { type: TypingStateActionType.LOOP_CURRENT_WORD }
   | { type: TypingStateActionType.FINISH_CHAPTER }
   | { type: TypingStateActionType.SKIP_WORD }
@@ -103,6 +108,7 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       newState.chapterData.index = initialIndex
       newState.chapterData.words = words
       newState.chapterData.userInputLogs = words.map((_, index) => ({ ...structuredClone(initialUserInputLog), index }))
+      newState.isTyping = action.payload.isTyping ?? false
 
       return newState
     }
@@ -146,6 +152,27 @@ export const typingReducer = (state: TypingState, action: TypingStateAction) => 
       const word = { ...action.payload, index: state.chapterData.words.length }
       state.chapterData.words.push(word)
       state.chapterData.userInputLogs.push({ ...structuredClone(initialUserInputLog), index: word.index })
+      break
+    }
+    case TypingStateActionType.REMOVE_CURRENT_AND_FUTURE_WORD: {
+      const currentIndex = state.chapterData.index
+      const remainingEntries = state.chapterData.words
+        .map((word, index) => ({ word, log: state.chapterData.userInputLogs[index] }))
+        .filter(({ word }, index) => index < currentIndex || word.name !== action.payload)
+      state.chapterData.words = remainingEntries.map(({ word }, index) => ({ ...word, index }))
+      state.chapterData.userInputLogs = remainingEntries.map(({ log }, index) => ({
+        ...(log ?? structuredClone(initialUserInputLog)),
+        index,
+      }))
+      if (currentIndex >= remainingEntries.length) {
+        state.isTyping = false
+        state.isFinished = true
+        state.isShowSkip = false
+      } else {
+        state.isTyping = true
+        state.isFinished = false
+        state.isShowSkip = false
+      }
       break
     }
     case TypingStateActionType.LOOP_CURRENT_WORD:
