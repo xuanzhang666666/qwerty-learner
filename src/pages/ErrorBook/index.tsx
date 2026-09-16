@@ -7,6 +7,9 @@ import RowDetail from './RowDetail'
 import { currentRowDetailAtom } from './store'
 import type { groupedWordRecords } from './type'
 import { GRAMMAR_SENTENCE_DICT_ID, getGrammarSentenceWordByEnglish } from '@/features/grammar-sentence'
+import { getCustomDictionaryWord } from '@/features/my-dictionaries/db'
+import { customDictionariesAtom } from '@/features/my-dictionaries/store'
+import { isCustomDictionaryId } from '@/features/my-dictionaries/types'
 import type { TErrorWordData } from '@/pages/Gallery-N/hooks/useErrorWords'
 import { ERROR_BOOK_REVIEW_DICT_ID, idDictionaryMap } from '@/resources/dictionary'
 import { currentChapterAtom, currentDictIdAtom, reviewModeInfoAtom } from '@/store'
@@ -30,6 +33,11 @@ export function ErrorBook() {
   const [sortType, setSortType] = useState<ISortType>('asc')
   const navigate = useNavigate()
   const currentRowDetail = useAtomValue(currentRowDetailAtom)
+  const customDictionaries = useAtomValue(customDictionariesAtom)
+  const dictionaryMap = useMemo(
+    () => ({ ...idDictionaryMap, ...Object.fromEntries(customDictionaries.map((dict) => [dict.id, dict])) }),
+    [customDictionaries],
+  )
   const { deleteWordRecord } = useDeleteWordRecord()
   const [reload, setReload] = useState(false)
   const [isPreparingReview, setIsPreparingReview] = useState(false)
@@ -153,12 +161,17 @@ export function ErrorBook() {
       const errorData: TErrorWordData[] = []
 
       for (const record of dueRecords) {
-        const dictInfo = idDictionaryMap[record.dict]
+        const dictInfo = dictionaryMap[record.dict]
         if (!dictInfo) continue
 
-        let originWord = record.dict === GRAMMAR_SENTENCE_DICT_ID ? await getGrammarSentenceWordByEnglish(record.word) : undefined
+        let originWord =
+          record.dict === GRAMMAR_SENTENCE_DICT_ID
+            ? await getGrammarSentenceWordByEnglish(record.word)
+            : isCustomDictionaryId(record.dict)
+            ? await getCustomDictionaryWord(record.dict, record.word)
+            : undefined
 
-        if (!originWord && record.dict !== GRAMMAR_SENTENCE_DICT_ID) {
+        if (!originWord && record.dict !== GRAMMAR_SENTENCE_DICT_ID && !isCustomDictionaryId(record.dict)) {
           let wordList = wordListCache.get(record.dict)
           if (!wordList) {
             wordList = await wordListFetcher(dictInfo.url)
@@ -207,7 +220,7 @@ export function ErrorBook() {
     } finally {
       setIsPreparingReview(false)
     }
-  }, [groupedRecords, isPreparingReview, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo])
+  }, [dictionaryMap, groupedRecords, isPreparingReview, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo])
 
   return (
     <>

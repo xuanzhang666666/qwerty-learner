@@ -1,5 +1,7 @@
 import { CHAPTER_LENGTH } from '@/constants'
 import { GRAMMAR_SENTENCE_DICT_ID, useGrammarSentenceWords } from '@/features/grammar-sentence'
+import { useCustomDictionaryWords } from '@/features/my-dictionaries/hooks'
+import { isCustomDictionaryId } from '@/features/my-dictionaries/types'
 import { currentChapterAtom, currentDictInfoAtom, reviewModeInfoAtom } from '@/store'
 import type { Word, WordWithIndex } from '@/typings/index'
 import { wordListFetcher } from '@/utils/wordListFetcher'
@@ -21,6 +23,7 @@ export function useWordList(): UseWordListResult {
   const [currentChapter, setCurrentChapter] = useAtom(currentChapterAtom)
   const { isReviewMode, reviewRecord } = useAtomValue(reviewModeInfoAtom)
   const grammarSentenceWordList = useGrammarSentenceWords()
+  const customWordList = useCustomDictionaryWords(currentDictInfo.id)
   const isGrammarSentenceDict = currentDictInfo.id === GRAMMAR_SENTENCE_DICT_ID
 
   // Reset current chapter to 0, when currentChapter is greater than chapterCount.
@@ -29,7 +32,11 @@ export function useWordList(): UseWordListResult {
   }
 
   const isFirstChapter = !isReviewMode && currentDictInfo.id === 'cet4' && currentChapter === 0
-  const { data: wordList, error, isLoading } = useSWR(isGrammarSentenceDict ? null : currentDictInfo.url, wordListFetcher)
+  const {
+    data: wordList,
+    error,
+    isLoading,
+  } = useSWR(isGrammarSentenceDict || isCustomDictionaryId(currentDictInfo.id) ? null : currentDictInfo.url, wordListFetcher)
 
   const words: WordWithIndex[] = useMemo(() => {
     let newWords: Word[]
@@ -39,6 +46,8 @@ export function useWordList(): UseWordListResult {
       newWords = grammarSentenceWordList.words
     } else if (isReviewMode) {
       newWords = reviewRecord?.words ?? []
+    } else if (isCustomDictionaryId(currentDictInfo.id)) {
+      newWords = customWordList.words.slice(currentChapter * CHAPTER_LENGTH, (currentChapter + 1) * CHAPTER_LENGTH)
     } else if (wordList) {
       newWords = wordList.slice(currentChapter * CHAPTER_LENGTH, (currentChapter + 1) * CHAPTER_LENGTH)
     } else {
@@ -61,11 +70,21 @@ export function useWordList(): UseWordListResult {
         trans,
       }
     })
-  }, [grammarSentenceWordList.words, isFirstChapter, isGrammarSentenceDict, isReviewMode, wordList, reviewRecord?.words, currentChapter])
+  }, [
+    customWordList.words,
+    currentDictInfo.id,
+    grammarSentenceWordList.words,
+    isFirstChapter,
+    isGrammarSentenceDict,
+    isReviewMode,
+    wordList,
+    reviewRecord?.words,
+    currentChapter,
+  ])
 
   return isGrammarSentenceDict
     ? { words, isLoading: grammarSentenceWordList.isLoading, error: grammarSentenceWordList.error }
-    : { words, isLoading, error }
+    : { words, isLoading: isCustomDictionaryId(currentDictInfo.id) ? customWordList.isLoading : isLoading, error }
 }
 
 const firstChapter = [

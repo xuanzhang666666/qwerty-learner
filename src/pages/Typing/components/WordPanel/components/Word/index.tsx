@@ -163,10 +163,14 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   )
 
   useEffect(() => {
-    if (wordState.inputWord.length === 0 && state.isTyping) {
-      wordPronunciationIconRef.current?.play && wordPronunciationIconRef.current?.play()
-    }
-  }, [state.isTyping, wordState.inputWord.length, wordPronunciationIconRef.current?.play])
+    if (!state.isTyping) return
+
+    const timer = window.setTimeout(() => {
+      wordPronunciationIconRef.current?.play()
+    }, 1000)
+
+    return () => window.clearTimeout(timer)
+  }, [state.isTyping, word.name])
 
   const getLetterVisible = useCallback(
     (index: number) => {

@@ -3,10 +3,11 @@ import useGetWord from './hooks/useGetWord'
 import { currentRowDetailAtom } from './store'
 import type { groupedWordRecords } from './type'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { customDictionariesAtom } from '@/features/my-dictionaries/store'
 import { idDictionaryMap } from '@/resources/dictionary'
 import { recordErrorBookAction } from '@/utils'
 import { formatNextReviewStatus } from '@/utils/db/spaced-repetition'
-import { useSetAtom } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import type { FC } from 'react'
 import { useCallback } from 'react'
 import DeleteIcon from '~icons/weui/delete-filled'
@@ -20,7 +21,8 @@ type IErrorRowProps = {
 
 const ErrorRow: FC<IErrorRowProps> = ({ record, onDelete }) => {
   const setCurrentRowDetail = useSetAtom(currentRowDetailAtom)
-  const dictInfo = idDictionaryMap[record.dict]
+  const customDictionaries = useAtomValue(customDictionariesAtom)
+  const dictInfo = idDictionaryMap[record.dict] ?? customDictionaries.find((dictionary) => dictionary.id === record.dict)
   const { word, isLoading, hasError } = useGetWord(record.word, dictInfo)
 
   const onClick = useCallback(() => {

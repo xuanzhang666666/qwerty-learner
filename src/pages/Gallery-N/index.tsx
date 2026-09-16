@@ -2,6 +2,7 @@ import DictionaryGroup from './CategoryDicts'
 import DictRequest from './DictRequest'
 import { LanguageTabSwitcher } from './LanguageTabSwitcher'
 import Layout from '@/components/Layout'
+import { customDictionariesAtom } from '@/features/my-dictionaries/store'
 import { dictionaries } from '@/resources/dictionary'
 import { currentDictInfoAtom } from '@/store'
 import type { Dictionary, LanguageCategoryType } from '@/typings'
@@ -33,9 +34,12 @@ export default function GalleryPage() {
   const [galleryState, setGalleryState] = useImmer<GalleryState>(initialGalleryState)
   const navigate = useNavigate()
   const currentDictInfo = useAtomValue(currentDictInfoAtom)
+  const customDictionaries = useAtomValue(customDictionariesAtom)
 
   const { groupedByCategoryAndTag } = useMemo(() => {
-    const currentLanguageCategoryDicts = dictionaries.filter((dict) => dict.languageCategory === galleryState.currentLanguageTab)
+    const currentLanguageCategoryDicts = [...dictionaries, ...customDictionaries].filter(
+      (dict) => dict.languageCategory === galleryState.currentLanguageTab,
+    )
     const groupedByCategory = Object.entries(groupBy(currentLanguageCategoryDicts, (dict) => dict.category))
     const groupedByCategoryAndTag = groupedByCategory.map(
       ([category, dicts]) => [category, groupByDictTags(dicts)] as [string, Record<string, Dictionary[]>],
@@ -44,7 +48,7 @@ export default function GalleryPage() {
     return {
       groupedByCategoryAndTag,
     }
-  }, [galleryState.currentLanguageTab])
+  }, [customDictionaries, galleryState.currentLanguageTab])
 
   const onBack = useCallback(() => {
     navigate('/')
@@ -76,6 +80,9 @@ export default function GalleryPage() {
                     onClick={() => navigate('/grammar-sentence')}
                   >
                     语法句子练习
+                  </button>
+                  <button className="my-btn-primary h-10 px-4 text-sm font-bold" type="button" onClick={() => navigate('/my-dictionaries')}>
+                    我的词典
                   </button>
                   <DictRequest />
                 </div>

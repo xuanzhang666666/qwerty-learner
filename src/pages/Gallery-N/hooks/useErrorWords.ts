@@ -1,3 +1,5 @@
+import { getCustomDictionaryWords } from '@/features/my-dictionaries/db'
+import { isCustomDictionaryId } from '@/features/my-dictionaries/types'
 import type { Dictionary, Word } from '@/typings'
 import { db } from '@/utils/db'
 import type { WordRecord } from '@/utils/db/record'
@@ -20,7 +22,13 @@ export type TErrorWordData = {
 }
 
 export default function useErrorWordData(dict: Dictionary, reload: boolean) {
-  const { data: wordList, error, isLoading } = useSWR(dict?.url, wordListFetcher)
+  const {
+    data: wordList,
+    error,
+    isLoading,
+  } = useSWR(['dictionary-words', dict.id], () =>
+    isCustomDictionaryId(dict.id) ? getCustomDictionaryWords(dict.id) : wordListFetcher(dict.url),
+  )
 
   const [errorWordData, setErrorData] = useState<TErrorWordData[]>([])
 
